@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Pablo Eduardo Merino", email = "3802987+eduardoaxml@users.noreply.github.com" }
+    { name = "Pablo Merino", email = "3802987+eduardoaxml@users.noreply.github.com" }
 ]
 requires-python = ">=3.13"
 dependencies = [
@@ -32,3 +32,7 @@ dev = [
     "pytest-django>=4.14.0",
     "ruff>=0.17.0",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.development"
+python_files = ["test_*.py", "*_tests.py", "tests.py"]
