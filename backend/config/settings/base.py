@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'apps.accounts.apps.AccountsConfig',
+    'apps.organizations.apps.OrganizationsConfig',
 ]
 
 MIDDLEWARE = [
