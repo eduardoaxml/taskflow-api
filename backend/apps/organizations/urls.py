@@ -4,6 +4,8 @@ from django.urls import path
 from apps.organizations.views import (
     OrganizationDetailView,
     OrganizationListCreateView,
+    OrganizationMembershipDetailView,
+    OrganizationMembershipListCreateView,
 )
 
 app_name = "organizations"
@@ -18,5 +20,15 @@ urlpatterns = [
         "<uuid:id>/",
         OrganizationDetailView.as_view(),
         name="organization-detail",
+    ),
+    path(
+        "<uuid:organization_id>/members/",
+        OrganizationMembershipListCreateView.as_view(),
+        name="membership-list",
+    ),
+    path(
+        "<uuid:organization_id>/members/<uuid:membership_id>/",
+        OrganizationMembershipDetailView.as_view(),
+        name="membership-detail",
     ),
 ]

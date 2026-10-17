@@ -39,6 +39,7 @@ class User(AbstractUser):
         unique=True,
         db_index=True,
     )
+    
 
     objects = UserManager()
 
