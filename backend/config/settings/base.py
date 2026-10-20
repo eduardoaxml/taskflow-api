@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     'rest_framework',
     'corsheaders',
     'drf_spectacular',
@@ -172,4 +173,15 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "TaskFlow API",
     "DESCRIPTION": "Project and task management API.",
     "VERSION": "1.0.0",
+    "ENUM_NAME_OVERRIDES": {
+        "OrganizationMembershipRoleEnum": [
+            ("OWNER", "Owner"),
+            ("ADMIN", "Admin"),
+            ("MEMBER", "Member"),
+        ],
+        "ManageableMembershipRoleEnum": [
+            ("ADMIN", "Admin"),
+            ("MEMBER", "Member"),
+        ],
+    },
 }
