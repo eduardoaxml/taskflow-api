@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from apps.organizations.models import Membership
-from apps.projects.models import Project, Task
+from apps.projects.models import Project, Task, TaskComment
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -97,3 +97,40 @@ class TaskSerializer(serializers.ModelSerializer):
             created_by=self.context["request"].user,
             **validated_data,
         )
+
+
+class TaskCommentSerializer(serializers.ModelSerializer):
+    author_email = serializers.EmailField(
+        source="author.email",
+        read_only=True,
+    )
+
+    class Meta:
+        model = TaskComment
+        fields = [
+            "id",
+            "task",
+            "author",
+            "author_email",
+            "content",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "task",
+            "author",
+            "author_email",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_content(self, value):
+        content = value.strip()
+
+        if not content:
+            raise serializers.ValidationError(
+                "Comment content cannot be empty."
+            )
+
+        return content

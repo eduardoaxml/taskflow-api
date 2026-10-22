@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type {
   CreateTaskPayload,
   Task,
@@ -6,6 +6,8 @@ import type {
   TaskStatus,
 } from "../types/api";
 import { updateTask } from "../services/taskService";
+import type { OrganizationMember } from "../types/api";
+import { getOrganizationMembers } from "../services/memberService";
 
 type AuthenticatedRequest = <T>(
   path: string,
@@ -36,6 +38,11 @@ export default function EditTaskForm({
   const [dueDate, setDueDate] = useState(task.due_date ?? "");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [membersError, setMembersError] = useState("");
+  const [assigneeId, setAssigneeId] = useState(
+    task.assignee == null ? "" : String(task.assignee),
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,6 +59,7 @@ export default function EditTaskForm({
       status,
       priority,
       due_date: dueDate || null,
+      assignee: assigneeId ? Number(assigneeId) : null,
     };
 
     setIsSaving(true);
@@ -70,7 +78,29 @@ export default function EditTaskForm({
       setIsSaving(false);
     }
   }
+  useEffect(() => {
+    let isMounted = true;
 
+    async function loadMembers() {
+      try {
+        const response = await getOrganizationMembers(organizationId, request);
+
+        if (isMounted) {
+          setMembers(response.results.filter((member) => member.is_active));
+        }
+      } catch {
+        if (isMounted) {
+          setMembersError("Unable to load organization members.");
+        }
+      }
+    }
+
+    void loadMembers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [organizationId, request]);
   return (
     <form className="task-form" onSubmit={handleSubmit}>
       <h5>Edit task</h5>
@@ -80,7 +110,25 @@ export default function EditTaskForm({
           {error}
         </p>
       )}
+      <div>
+        <label htmlFor="edit-task-assignee">Assign to</label>
 
+        <select
+          id="edit-task-assignee"
+          value={assigneeId}
+          onChange={(event) => setAssigneeId(event.target.value)}
+        >
+          <option value="">Unassigned</option>
+
+          {members.map((member) => (
+            <option key={member.user_id} value={member.user_id}>
+              {member.user_email}
+            </option>
+          ))}
+        </select>
+
+        {membersError && <p role="alert">{membersError}</p>}
+      </div>
       <label htmlFor={`edit-title-${task.id}`}>Title</label>
       <input
         id={`edit-title-${task.id}`}

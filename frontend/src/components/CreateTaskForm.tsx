@@ -1,12 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { CreateTaskPayload, TaskPriority, TaskStatus } from "../types/api";
 import { createTask } from "../services/taskService";
+import type { OrganizationMember } from "../types/api";
+import { getOrganizationMembers } from "../services/memberService";
 
 type AuthenticatedRequest = <T>(
   path: string,
   options?: RequestInit,
 ) => Promise<T>;
-
 interface CreateTaskFormProps {
   organizationId: string;
   projectId: string;
@@ -27,6 +28,9 @@ export default function CreateTaskForm({
   const [dueDate, setDueDate] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [membersError, setMembersError] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,6 +43,7 @@ export default function CreateTaskForm({
       status,
       priority,
       due_date: dueDate || null,
+      assignee: assigneeId ? Number(assigneeId) : null,
     };
 
     try {
@@ -58,6 +63,30 @@ export default function CreateTaskForm({
     }
   }
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMembers() {
+      try {
+        const response = await getOrganizationMembers(organizationId, request);
+
+        if (isMounted) {
+          setMembers(response.results.filter((member) => member.is_active));
+        }
+      } catch {
+        if (isMounted) {
+          setMembersError("Unable to load organization members.");
+        }
+      }
+    }
+
+    void loadMembers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [organizationId, request]);
+
   return (
     <form className="task-form" onSubmit={handleSubmit}>
       <h3>Create a task</h3>
@@ -67,6 +96,25 @@ export default function CreateTaskForm({
           {error}
         </p>
       )}
+      <div>
+        <label htmlFor="task-assignee">Assign to</label>
+
+        <select
+          id="task-assignee"
+          value={assigneeId}
+          onChange={(event) => setAssigneeId(event.target.value)}
+        >
+          <option value="">Unassigned</option>
+
+          {members.map((member) => (
+            <option key={member.user_id} value={member.user_id}>
+              {member.user_email}
+            </option>
+          ))}
+        </select>
+
+        {membersError && <p role="alert">{membersError}</p>}
+      </div>
 
       <label htmlFor="task-title">Title</label>
       <input

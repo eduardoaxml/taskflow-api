@@ -59,3 +59,22 @@ export interface CreateTaskPayload {
   assignee?: number | null;
   due_date?: string | null;
 }
+
+export interface OrganizationMember {
+  id: number;
+  user_id: number;
+  user_email: string;
+  role: string;
+  is_active: boolean;
+  joined_at: string;
+}
+
+export interface TaskComment {
+  id: string;
+  task: string;
+  author: number;
+  author_email: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}

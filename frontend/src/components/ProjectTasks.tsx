@@ -4,6 +4,7 @@ import { ApiError } from "../services/apiClient";
 import { deleteTask, getTasks } from "../services/taskService";
 import CreateTaskForm from "./CreateTaskForm";
 import EditTaskForm from "./EditTaskForm";
+import TaskComments from "./TaskComments";
 
 type AuthenticatedRequest = <T>(
   path: string,
@@ -102,6 +103,7 @@ export default function ProjectTasks({
 
       <div className="task-filters">
         <input
+          className="task-filters__search"
           type="search"
           placeholder="Search tasks by title..."
           aria-label="Search tasks by title"
@@ -110,6 +112,7 @@ export default function ProjectTasks({
         />
 
         <select
+          className="task-filters__select"
           aria-label="Filter tasks by status"
           value={statusFilter}
           onChange={(event) =>
@@ -124,6 +127,7 @@ export default function ProjectTasks({
         </select>
 
         <select
+          className="task-filters__select"
           aria-label="Filter tasks by priority"
           value={priorityFilter}
           onChange={(event) =>
@@ -162,7 +166,7 @@ export default function ProjectTasks({
           {!isLoading && !error && filteredTasks.length > 0 && (
             <ul>
               {filteredTasks.map((task) => (
-                <li key={task.id}>
+                <li key={task.id} className="task-card">
                   {editingTaskId === task.id ? (
                     <EditTaskForm
                       organizationId={organizationId}
@@ -177,32 +181,64 @@ export default function ProjectTasks({
                     />
                   ) : (
                     <>
-                      <h5>{task.title}</h5>
+                      <div className="task-card__header">
+                        <h5 className="task-card__title">{task.title}</h5>
 
-                      <p>{task.description || "No description provided."}</p>
+                        <div className="task-card__actions">
+                          <button
+                            type="button"
+                            onClick={() => setEditingTaskId(task.id)}
+                            disabled={deletingTaskId !== null}
+                          >
+                            Edit
+                          </button>
 
-                      <p>Status: {task.status.replaceAll("_", " ")}</p>
+                          <button
+                            type="button"
+                            className="button-danger"
+                            onClick={() =>
+                              void handleDeleteTask(task.id, task.title)
+                            }
+                            disabled={deletingTaskId !== null}
+                          >
+                            {deletingTaskId === task.id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </button>
+                        </div>
+                      </div>
 
-                      <p>Priority: {task.priority}</p>
+                      <p className="task-card__description">
+                        {task.description || "No description provided."}
+                      </p>
 
-                      <p>Due date: {task.due_date || "No due date"}</p>
+                      <div className="task-card__metadata">
+                        <span
+                          className={`status-badge status-badge--${task.status.toLowerCase()}`}
+                        >
+                          {task.status.replaceAll("_", " ")}
+                        </span>
 
-                      <button
-                        type="button"
-                        onClick={() => setEditingTaskId(task.id)}
-                      >
-                        Edit
-                      </button>
+                        <span
+                          className={`priority-badge priority-badge--${task.priority.toLowerCase()}`}
+                        >
+                          {task.priority}
+                        </span>
+                      </div>
+                      <p className="task-card__assignee">
+                        <strong>Assigned to:</strong>{" "}
+                        {task.assignee_email || "Unassigned"}
+                      </p>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void handleDeleteTask(task.id, task.title)
-                        }
-                        disabled={deletingTaskId !== null}
-                      >
-                        {deletingTaskId === task.id ? "Deleting..." : "Delete"}
-                      </button>
+                      <p className="task-card__due-date">
+                        Due date: {task.due_date || "No due date"}
+                      </p>
+                      <TaskComments
+                        organizationId={organizationId}
+                        projectId={projectId}
+                        taskId={task.id}
+                        request={request}
+                      />
                     </>
                   )}
                 </li>

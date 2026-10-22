@@ -6,7 +6,9 @@ from apps.projects.views import (
     OrganizationProjectListCreateView,
     ProjectTaskDetailView,
     ProjectTaskListCreateView,
+    TaskCommentListCreateView
 )
+from .views import TaskCommentListCreateView
 
 app_name = "projects"
 
@@ -30,5 +32,16 @@ urlpatterns = [
         "organizations/<uuid:organization_id>/projects/<uuid:project_id>/tasks/<uuid:task_id>/",
         ProjectTaskDetailView.as_view(),
         name="task-detail",
+    ),
+    path(
+        "organizations/<uuid:organization_id>/projects/"
+        "<uuid:project_id>/tasks/<uuid:task_id>/comments/",
+        TaskCommentListCreateView.as_view(),
+        name="task-comment-list-create",
+    ),
+    path(
+        "organizations/<uuid:organization_id>/projects/<uuid:project_id>/tasks/<uuid:task_id>/comments/",
+        TaskCommentListCreateView.as_view(),
+        name="task-comment-list-create",
     ),
 ]

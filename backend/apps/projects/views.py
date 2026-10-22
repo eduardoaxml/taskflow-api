@@ -1,6 +1,7 @@
 
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter, SearchFilter
 from drf_spectacular.utils import extend_schema
@@ -10,8 +11,8 @@ from apps.organizations.permissions import (
     IsOrganizationManager,
     IsOrganizationMember,
 )
-from apps.projects.models import Project, Task
-from apps.projects.serializers import ProjectSerializer, TaskSerializer
+from apps.projects.models import Project, Task, TaskComment
+from apps.projects.serializers import ProjectSerializer, TaskSerializer, TaskCommentSerializer
 
 @extend_schema(
     summary="List project tasks",
@@ -195,3 +196,33 @@ class ProjectTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         context["project"] = project
         context["organization"] = project.organization
         return context
+    
+class TaskCommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = TaskCommentSerializer
+
+    def get_task(self):
+        task = generics.get_object_or_404(
+            Task.objects.select_related("project__organization"),
+            id=self.kwargs["task_id"],
+            project_id=self.kwargs["project_id"],
+            project__organization_id=self.kwargs["organization_id"],
+        )
+
+        if not task.project.organization.memberships.filter(
+            user=self.request.user,
+            is_active=True,
+        ).exists():
+            raise PermissionDenied("Organization membership required.")
+
+        return task
+
+    def get_queryset(self):
+        return TaskComment.objects.filter(
+            task=self.get_task()
+        ).select_related("author")
+
+    def perform_create(self, serializer):
+        serializer.save(
+            task=self.get_task(),
+            author=self.request.user,
+        )
