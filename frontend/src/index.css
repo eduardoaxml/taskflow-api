@@ -327,3 +327,64 @@ code {
   color: #64748b;
   font-size: 0.75rem;
 }
+
+.organization-members {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.organization-members h3 {
+  margin: 0 0 1rem;
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.organization-members ul {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.organization-members li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.organization-members li strong {
+  color: #334155;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.organization-members li span {
+  flex-shrink: 0;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+@media (max-width: 480px) {
+  .organization-members {
+    padding: 1rem;
+  }
+
+  .organization-members li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

@@ -6,6 +6,7 @@ import { getProjects } from "../services/projectService";
 import CreateProjectForm from "../components/CreateProjectForm";
 import ProjectTasks from "../components/ProjectTasks";
 import type { Project } from "../types/api";
+import OrganizationMembers from "../components/OrganizationMembers";
 
 export default function OrganizationPage() {
   const { organizationId } = useParams();
@@ -78,6 +79,13 @@ export default function OrganizationPage() {
           />
         )}
       </section>
+
+      {organizationId && (
+        <OrganizationMembers
+          organizationId={organizationId}
+          request={request}
+        />
+      )}
 
       {!isLoading && !error && projects.length > 0 && (
         <section>
