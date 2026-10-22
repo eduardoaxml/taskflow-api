@@ -1,0 +1,32 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+
+import { AuthProvider } from "../contexts/AuthContext";
+import HomePage from "../pages/HomePage";
+import LoginPage from "../pages/LoginPage";
+import DashboardPage from "../pages/DashboardPage";
+import NotFoundPage from "../pages/NotFoundPage";
+import ProtectedRoute from "./ProtectedRoute";
+import OrganizationPage from "../pages/OrganizationPage";
+
+export default function AppRouter() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route
+              path="/organizations/:organizationId"
+              element={<OrganizationPage />}
+            />
+          </Route>
+          <Route path="/404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
