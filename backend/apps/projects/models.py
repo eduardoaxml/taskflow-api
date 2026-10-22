@@ -138,3 +138,38 @@ class TaskComment(models.Model):
 
     def __str__(self):
         return f"Comment on {self.task_id} by {self.author_id}"
+    
+
+class TaskActivity(models.Model):
+    ACTION_CHOICES = [
+        ("CREATED", "Task created"),
+        ("STATUS_CHANGED", "Status changed"),
+        ("PRIORITY_CHANGED", "Priority changed"),
+        ("ASSIGNED", "Task assigned"),
+        ("COMMENT_ADDED", "Comment added"),
+    ]
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    task = models.ForeignKey(
+        "projects.Task",
+        on_delete=models.CASCADE,
+        related_name="activities",
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="task_activities",
+    )
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.action} - {self.task_id}"

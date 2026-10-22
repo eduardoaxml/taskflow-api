@@ -12,7 +12,7 @@ from apps.organizations.permissions import (
     IsOrganizationMember,
 )
 from apps.projects.models import Project, Task, TaskComment
-from apps.projects.serializers import ProjectSerializer, TaskSerializer, TaskCommentSerializer
+from apps.projects.serializers import ProjectSerializer, TaskActivitySerializer, TaskSerializer, TaskCommentSerializer
 
 @extend_schema(
     summary="List project tasks",
@@ -226,3 +226,23 @@ class TaskCommentListCreateView(generics.ListCreateAPIView):
             task=self.get_task(),
             author=self.request.user,
         )
+
+
+class TaskActivityListView(generics.ListAPIView):
+    serializer_class = TaskActivitySerializer
+
+    def get_queryset(self):
+        task = generics.get_object_or_404(
+            Task.objects.select_related("project__organization"),
+            id=self.kwargs["task_id"],
+            project_id=self.kwargs["project_id"],
+            project__organization_id=self.kwargs["organization_id"],
+        )
+
+        if not task.project.organization.memberships.filter(
+            user=self.request.user,
+            is_active=True,
+        ).exists():
+            raise PermissionDenied("Organization membership required.")
+
+        return task.activities.select_related("actor").all()

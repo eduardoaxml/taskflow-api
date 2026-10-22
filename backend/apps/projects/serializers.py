@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from apps.organizations.models import Membership
-from apps.projects.models import Project, Task, TaskComment
+from apps.projects.models import Project, Task, TaskComment, TaskActivity
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -134,3 +134,22 @@ class TaskCommentSerializer(serializers.ModelSerializer):
             )
 
         return content
+    
+class TaskActivitySerializer(serializers.ModelSerializer):
+    actor_email = serializers.EmailField(
+        source="actor.email",
+        read_only=True,
+    )
+
+    class Meta:
+        model = TaskActivity
+        fields = [
+            "id",
+            "task",
+            "actor",
+            "actor_email",
+            "action",
+            "description",
+            "created_at",
+        ]
+        read_only_fields = fields
