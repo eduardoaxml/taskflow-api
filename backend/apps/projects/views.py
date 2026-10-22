@@ -11,7 +11,7 @@ from apps.organizations.permissions import (
     IsOrganizationManager,
     IsOrganizationMember,
 )
-from apps.projects.models import Project, Task, TaskComment
+from apps.projects.models import Project, Task, TaskActivity, TaskComment
 from apps.projects.serializers import ProjectSerializer, TaskActivitySerializer, TaskSerializer, TaskCommentSerializer
 
 @extend_schema(
@@ -126,6 +126,17 @@ class ProjectTaskListCreateView(generics.ListCreateAPIView):
             )
             .distinct()
         )
+    
+    def perform_create(self, serializer):
+        task = serializer.save()
+
+        TaskActivity.objects.create(
+            task=task,
+            actor=self.request.user,
+            action="CREATED",
+            description="Created the task.",
+        )
+
         
         # return Task.objects.filter(
         #     project=self.get_project(),
@@ -197,6 +208,46 @@ class ProjectTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         context["organization"] = project.organization
         return context
     
+    
+    def perform_update(self, serializer):
+        old_task = self.get_object()
+        old_status = old_task.status
+        old_priority = old_task.priority
+        old_assignee_id = old_task.assignee_id
+        
+        task = serializer.save()
+
+        if old_status != task.status:
+            TaskActivity.objects.create(
+                task=task,
+                actor=self.request.user,
+                action="STATUS_CHANGED",
+                description=f"Status changed from {old_status} to {task.status}.",
+            )
+
+        if old_priority != task.priority:
+            TaskActivity.objects.create(
+                task=task,
+                actor=self.request.user,
+                action="PRIORITY_CHANGED",
+                description=f"Priority changed from {old_priority} to {task.priority}.",
+            )
+        
+        if old_assignee_id != task.assignee_id:
+            description = (
+                f"Assigned task to {task.assignee.email}."
+                if task.assignee
+                else "Task unassigned."
+            )
+
+            TaskActivity.objects.create(
+                task=task,
+                actor=self.request.user,
+                action="ASSIGNED",
+                description=description,
+            )
+
+    
 class TaskCommentListCreateView(generics.ListCreateAPIView):
     serializer_class = TaskCommentSerializer
 
@@ -222,9 +273,17 @@ class TaskCommentListCreateView(generics.ListCreateAPIView):
         ).select_related("author")
 
     def perform_create(self, serializer):
-        serializer.save(
-            task=self.get_task(),
+        task = self.get_task()
+        comment = serializer.save(
+            task=task,
             author=self.request.user,
+        )
+
+        TaskActivity.objects.create(
+            task=task,
+            actor=self.request.user,
+            action="COMMENT_ADDED",
+            description="Added a comment.",
         )
 
 

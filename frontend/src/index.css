@@ -285,3 +285,45 @@ code {
 .task-card__assignee strong {
   color: #334155;
 }
+
+.task-activity {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.task-activity h4 {
+  margin: 0 0 0.75rem;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.task-activity__list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-activity__item {
+  padding-left: 0.75rem;
+  border-left: 2px solid #cbd5e1;
+}
+
+.task-activity__item strong {
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+.task-activity__item p {
+  margin: 0.25rem 0;
+  color: #475569;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.task-activity__item small {
+  color: #64748b;
+  font-size: 0.75rem;
+}

@@ -5,6 +5,7 @@ import { deleteTask, getTasks } from "../services/taskService";
 import CreateTaskForm from "./CreateTaskForm";
 import EditTaskForm from "./EditTaskForm";
 import TaskComments from "./TaskComments";
+import TaskActivityTimeline from "./TaskActivityTimeline";
 
 type AuthenticatedRequest = <T>(
   path: string,
@@ -234,6 +235,12 @@ export default function ProjectTasks({
                         Due date: {task.due_date || "No due date"}
                       </p>
                       <TaskComments
+                        organizationId={organizationId}
+                        projectId={projectId}
+                        taskId={task.id}
+                        request={request}
+                      />
+                      <TaskActivityTimeline
                         organizationId={organizationId}
                         projectId={projectId}
                         taskId={task.id}

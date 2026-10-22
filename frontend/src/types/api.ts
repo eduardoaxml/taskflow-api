@@ -78,3 +78,18 @@ export interface TaskComment {
   created_at: string;
   updated_at: string;
 }
+
+export interface TaskActivity {
+  id: string;
+  task: string;
+  actor: number;
+  actor_email: string;
+  action:
+    | "CREATED"
+    | "STATUS_CHANGED"
+    | "PRIORITY_CHANGED"
+    | "ASSIGNED"
+    | "COMMENT_ADDED";
+  description: string;
+  created_at: string;
+}
