@@ -1,11 +1,16 @@
+from datetime import timedelta
+from django.utils import timezone
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated
 
-from apps.organizations.models import Membership, Organization
-from apps.organizations.serializers import OrganizationSerializer
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.views import APIView
+
+from apps.organizations.models import Membership, Organization, OrganizationInvitation
+from apps.organizations.serializers import OrganizationSerializer, OrganizationInvitationSerializer
 from apps.organizations.membership_serializers import (
     MembershipCreateSerializer,
     MembershipSerializer,
@@ -15,6 +20,24 @@ from apps.organizations.permissions import (
     IsOrganizationManager,
     IsOrganizationMember,
 )
+
+def require_invitation_manager(organization, user):
+    membership = organization.memberships.filter(
+        user=user,
+        is_active=True,
+    ).first()
+
+    if membership is None:
+        raise PermissionDenied(
+            "Active organization membership required."
+        )
+
+    if membership.role not in ("OWNER", "ADMIN"):
+        raise PermissionDenied(
+            "Only organization owners and admins can manage invitations."
+        )
+
+    return membership
 
 class OrganizationListCreateView(generics.ListCreateAPIView):
     serializer_class = OrganizationSerializer
@@ -160,3 +183,157 @@ class OrganizationMembershipDetailView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         self._validate_target(instance)
         instance.delete()
+
+
+
+class OrganizationInvitationCreateView(generics.ListCreateAPIView):
+    serializer_class = OrganizationInvitationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_organization(self):
+        organization = generics.get_object_or_404(
+            Organization,
+            id=self.kwargs["organization_id"],
+        )
+
+        require_invitation_manager(organization, self.request.user)
+
+        return organization
+
+    def get_queryset(self):
+        organization = self.get_organization()
+        return OrganizationInvitation.objects.filter(
+            organization=organization,
+        ).select_related("invited_by", "organization")
+
+    def create(self, request, *args, **kwargs):
+        organization = self.get_organization()
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+
+        if OrganizationInvitation.objects.filter(
+            organization=organization,
+            email__iexact=email,
+            status=OrganizationInvitation.Status.PENDING,
+        ).exists():
+            return Response(
+                {"detail": "A pending invitation already exists for this email."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invitation = serializer.save(
+            organization=organization,
+            invited_by=request.user,
+            role="MEMBER",
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+        return Response(
+            self.get_serializer(invitation).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+class OrganizationInvitationAcceptView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, invitation_id):
+        invitation = generics.get_object_or_404(
+            OrganizationInvitation,
+            id=invitation_id,
+        )
+
+        if invitation.status != OrganizationInvitation.Status.PENDING:
+            return Response(
+                {"detail": "This invitation is no longer pending."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if invitation.expires_at <= timezone.now():
+            return Response(
+                {"detail": "This invitation has expired."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if invitation.email.lower() != request.user.email.lower():
+            return Response(
+                {"detail": "This invitation belongs to another email address."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        membership, created = Membership.objects.get_or_create(
+            organization=invitation.organization,
+            user=request.user,
+            defaults={
+                "role": invitation.role,
+                "is_active": True,
+            },
+        )
+
+        if not created and not membership.is_active:
+            membership.is_active = True
+            membership.role = invitation.role
+            membership.save(update_fields=["is_active", "role"])
+
+        invitation.status = OrganizationInvitation.Status.ACCEPTED
+        invitation.save(update_fields=["status"])
+
+        return Response(
+            OrganizationInvitationSerializer(invitation).data,
+            status=status.HTTP_200_OK,
+        )
+        
+
+class OrganizationInvitationListView(generics.ListAPIView):
+    serializer_class = OrganizationInvitationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        organization = generics.get_object_or_404(
+            Organization,
+            id=self.kwargs["organization_id"],
+        )
+
+        is_member = organization.memberships.filter(
+            user=self.request.user,
+            is_active=True,
+        ).exists()
+
+        if not is_member:
+            raise PermissionDenied(
+                "Active organization membership required."
+            )
+
+        return OrganizationInvitation.objects.filter(
+            organization=organization,
+        ).select_related("invited_by", "organization")
+
+class OrganizationInvitationCancelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, invitation_id):
+        invitation = generics.get_object_or_404(
+            OrganizationInvitation,
+            id=invitation_id,
+        )
+
+        require_invitation_manager(
+            invitation.organization,
+            request.user,
+        )
+
+        if invitation.status != OrganizationInvitation.Status.PENDING:
+            return Response(
+                {"detail": "Only pending invitations can be cancelled."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invitation.status = OrganizationInvitation.Status.CANCELLED
+        invitation.save(update_fields=["status"])
+
+        return Response(
+            OrganizationInvitationSerializer(invitation).data,
+            status=status.HTTP_200_OK,
+        )

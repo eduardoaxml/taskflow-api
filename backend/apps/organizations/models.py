@@ -84,3 +84,41 @@ class Membership(models.Model):
             f"{self.user.email} - "
             f"{self.organization.name} ({self.role})"
         )
+
+class OrganizationInvitation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        ACCEPTED = "ACCEPTED", "Accepted"
+        CANCELLED = "CANCELLED", "Cancelled"
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="invitations",
+    )
+    email = models.EmailField()
+    role = models.CharField(max_length=30, default="MEMBER")
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="sent_organization_invitations",
+    )
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.email} - {self.organization_id}"

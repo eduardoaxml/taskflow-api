@@ -3,9 +3,13 @@ from django.urls import path
 
 from apps.organizations.views import (
     OrganizationDetailView,
+    OrganizationInvitationCreateView,
     OrganizationListCreateView,
     OrganizationMembershipDetailView,
     OrganizationMembershipListCreateView,
+    OrganizationInvitationAcceptView,
+    OrganizationInvitationListView,
+    OrganizationInvitationCancelView
 )
 
 app_name = "organizations"
@@ -30,5 +34,25 @@ urlpatterns = [
         "<uuid:organization_id>/members/<uuid:membership_id>/",
         OrganizationMembershipDetailView.as_view(),
         name="membership-detail",
+    ),
+    path(
+        "<uuid:organization_id>/invitations/",
+        OrganizationInvitationCreateView.as_view(),
+        name="organization-invitation-list-create",
+    ),
+    path(
+        "invitations/<uuid:invitation_id>/accept/",
+        OrganizationInvitationAcceptView.as_view(),
+        name="organization-invitation-accept",
+    ),
+    path(
+        "<uuid:organization_id>/invitations/",
+        OrganizationInvitationListView.as_view(),
+        name="organization-invitation-list",
+    ),
+    path(
+        "invitations/<uuid:invitation_id>/cancel/",
+        OrganizationInvitationCancelView.as_view(),
+        name="organization-invitation-cancel",
     ),
 ]

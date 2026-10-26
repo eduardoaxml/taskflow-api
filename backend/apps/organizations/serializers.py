@@ -2,7 +2,7 @@
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.organizations.models import Membership, Organization
+from apps.organizations.models import Membership, Organization, OrganizationInvitation
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -39,3 +39,33 @@ class OrganizationSerializer(serializers.ModelSerializer):
         )
 
         return organization
+
+
+class OrganizationInvitationSerializer(serializers.ModelSerializer):
+    invited_by_email = serializers.EmailField(
+        source="invited_by.email",
+        read_only=True,
+    )
+
+    class Meta:
+        model = OrganizationInvitation
+        fields = [
+            "id",
+            "organization",
+            "email",
+            "role",
+            "invited_by",
+            "invited_by_email",
+            "status",
+            "created_at",
+            "expires_at",
+        ]
+        read_only_fields = [
+            "id",
+            "organization",
+            "invited_by",
+            "invited_by_email",
+            "status",
+            "created_at",
+            "expires_at",
+        ]
