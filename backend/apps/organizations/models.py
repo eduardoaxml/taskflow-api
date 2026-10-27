@@ -24,10 +24,10 @@ class Organization(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["name"]
-        indexes = [
+        ordering = ("name",)
+        indexes = (
             models.Index(fields=["created_by", "created_at"]),
-        ]
+        )
 
     def __str__(self):
         return self.name
@@ -67,17 +67,17 @@ class Membership(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["joined_at"]
-        constraints = [
+        ordering = ("joined_at",)
+        constraints = (
             models.UniqueConstraint(
                 fields=["organization", "user"],
                 name="unique_organization_membership",
             ),
-        ]
-        indexes = [
+        )
+        indexes = (
             models.Index(fields=["user", "is_active"]),
             models.Index(fields=["organization", "role"]),
-        ]
+        )
 
     def __str__(self):
         return (
@@ -118,7 +118,7 @@ class OrganizationInvitation(models.Model):
     expires_at = models.DateTimeField()
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ("-created_at",)
 
     def __str__(self):
         return f"{self.email} - {self.organization_id}"

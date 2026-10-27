@@ -3,13 +3,13 @@ from django.urls import path
 
 from apps.organizations.views import (
     OrganizationDetailView,
+    OrganizationInvitationAcceptView,
+    OrganizationInvitationCancelView,
     OrganizationInvitationCreateView,
+    OrganizationInvitationListView,
     OrganizationListCreateView,
     OrganizationMembershipDetailView,
     OrganizationMembershipListCreateView,
-    OrganizationInvitationAcceptView,
-    OrganizationInvitationListView,
-    OrganizationInvitationCancelView
 )
 
 app_name = "organizations"

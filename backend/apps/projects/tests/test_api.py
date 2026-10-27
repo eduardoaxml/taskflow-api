@@ -1,16 +1,17 @@
 
 from datetime import date, timedelta
-import pytest
 
+import pytest
 from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from django.test.utils import CaptureQueriesContext
 
 from apps.accounts.models import User
 from apps.organizations.models import Membership, Organization
 from apps.projects.models import Project, Task
+
 
 @pytest.fixture
 def api_client():

@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from apps.organizations.models import Membership
-from apps.projects.models import Project, Task, TaskComment, TaskActivity
+from apps.projects.models import Project, Task, TaskActivity, TaskComment
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -11,7 +11,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = [
+        fields = (
             "id",
             "organization",
             "name",
@@ -21,14 +21,14 @@ class ProjectSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
             "updated_at",
-        ]
-        read_only_fields = [
+        )
+        read_only_fields = (
             "id",
             "organization",
             "created_by",
             "created_at",
             "updated_at",
-        ]
+        )
 
     def create(self, validated_data):
         return Project.objects.create(
@@ -49,7 +49,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = [
+        fields = (
             "id",
             "project",
             "title",
@@ -62,14 +62,14 @@ class TaskSerializer(serializers.ModelSerializer):
             "due_date",
             "created_at",
             "updated_at",
-        ]
-        read_only_fields = [
+        )
+        read_only_fields = (
             "id",
             "project",
             "created_by",
             "created_at",
             "updated_at",
-        ]
+        )
 
     def validate_assignee(self, assignee):
         if assignee is None:
@@ -107,7 +107,7 @@ class TaskCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TaskComment
-        fields = [
+        fields = (
             "id",
             "task",
             "author",
@@ -115,15 +115,15 @@ class TaskCommentSerializer(serializers.ModelSerializer):
             "content",
             "created_at",
             "updated_at",
-        ]
-        read_only_fields = [
+        )
+        read_only_fields = (
             "id",
             "task",
             "author",
             "author_email",
             "created_at",
             "updated_at",
-        ]
+        )
 
     def validate_content(self, value):
         content = value.strip()
@@ -143,7 +143,7 @@ class TaskActivitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TaskActivity
-        fields = [
+        fields = (
             "id",
             "task",
             "actor",
@@ -151,5 +151,5 @@ class TaskActivitySerializer(serializers.ModelSerializer):
             "action",
             "description",
             "created_at",
-        ]
+        )
         read_only_fields = fields

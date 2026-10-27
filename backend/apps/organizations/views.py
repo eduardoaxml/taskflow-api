@@ -1,25 +1,31 @@
 from datetime import timedelta
-from django.utils import timezone
+
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.organizations.models import Membership, Organization, OrganizationInvitation
-from apps.organizations.serializers import OrganizationSerializer, OrganizationInvitationSerializer
+from apps.organizations.emails import send_organization_invitation_safely
 from apps.organizations.membership_serializers import (
     MembershipCreateSerializer,
     MembershipSerializer,
     MembershipUpdateSerializer,
 )
+from apps.organizations.models import Membership, Organization, OrganizationInvitation
 from apps.organizations.permissions import (
     IsOrganizationManager,
     IsOrganizationMember,
 )
+from apps.organizations.serializers import (
+    OrganizationInvitationSerializer,
+    OrganizationSerializer,
+)
+
 
 def require_invitation_manager(organization, user):
     membership = organization.memberships.filter(
@@ -41,7 +47,7 @@ def require_invitation_manager(organization, user):
 
 class OrganizationListCreateView(generics.ListCreateAPIView):
     serializer_class = OrganizationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
         return Organization.objects.filter(
@@ -52,7 +58,7 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
 
 class OrganizationDetailView(generics.RetrieveAPIView):
     serializer_class = OrganizationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     lookup_field = "id"
 
     def get_queryset(self):
@@ -63,7 +69,7 @@ class OrganizationDetailView(generics.RetrieveAPIView):
 
 
 class OrganizationMembershipListCreateView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -124,10 +130,11 @@ class OrganizationMembershipListCreateView(generics.ListCreateAPIView):
 
 
 class OrganizationMembershipDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [
+    permission_classes = (
         permissions.IsAuthenticated,
         IsOrganizationMember,
-    ]
+    )
+    
     serializer_class = MembershipSerializer
     lookup_url_kwarg = "membership_id"
 
@@ -188,7 +195,7 @@ class OrganizationMembershipDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class OrganizationInvitationCreateView(generics.ListCreateAPIView):
     serializer_class = OrganizationInvitationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
     
     def get_organization(self):
         organization = generics.get_object_or_404(
@@ -206,6 +213,7 @@ class OrganizationInvitationCreateView(generics.ListCreateAPIView):
             organization=organization,
         ).select_related("invited_by", "organization")
 
+    
     def create(self, request, *args, **kwargs):
         organization = self.get_organization()
 
@@ -220,16 +228,27 @@ class OrganizationInvitationCreateView(generics.ListCreateAPIView):
             status=OrganizationInvitation.Status.PENDING,
         ).exists():
             return Response(
-                {"detail": "A pending invitation already exists for this email."},
+                {
+                    "detail": (
+                        "A pending invitation already exists for this email."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        invitation = serializer.save(
-            organization=organization,
-            invited_by=request.user,
-            role="MEMBER",
-            expires_at=timezone.now() + timedelta(days=7),
-        )
+        with transaction.atomic():
+            invitation = serializer.save(
+                organization=organization,
+                invited_by=request.user,
+                role="MEMBER",
+                expires_at=timezone.now() + timedelta(days=7),
+            )
+
+            transaction.on_commit(
+                lambda invitation_id=invitation.id: (
+                    send_organization_invitation_safely(invitation_id)
+                )
+            )
 
         return Response(
             self.get_serializer(invitation).data,
@@ -237,13 +256,30 @@ class OrganizationInvitationCreateView(generics.ListCreateAPIView):
         )
 
 class OrganizationInvitationAcceptView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
 
+    @extend_schema(
+        summary="Accept an organization invitation",
+        description=(
+            "Accept a pending invitation when the authenticated user's "
+            "email matches the invitation email and the invitation has "
+            "not expired or been cancelled."
+        ),
+        request=None,
+        responses={
+            200: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT,
+            403: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+    )
+    
     def post(self, request, invitation_id):
-        invitation = generics.get_object_or_404(
-            OrganizationInvitation,
-            id=invitation_id,
-        )
+        with transaction.atomic():
+            invitation = get_object_or_404(
+                OrganizationInvitation.objects.select_for_update(),
+                pk=invitation_id,
+            )
 
         if invitation.status != OrganizationInvitation.Status.PENDING:
             return Response(
@@ -288,7 +324,7 @@ class OrganizationInvitationAcceptView(APIView):
 
 class OrganizationInvitationListView(generics.ListAPIView):
     serializer_class = OrganizationInvitationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
         organization = generics.get_object_or_404(
@@ -311,13 +347,27 @@ class OrganizationInvitationListView(generics.ListAPIView):
         ).select_related("invited_by", "organization")
 
 class OrganizationInvitationCancelView(APIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = (permissions.IsAuthenticated,)
+    @extend_schema(
+        summary="Cancel an organization invitation",
+        description=(
+            "Cancel a pending invitation. Only organization owners "
+            "and admins can cancel invitations."
+        ),
+        request=None,
+        responses={
+            200: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT,
+            403: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+    )
     def post(self, request, invitation_id):
-        invitation = generics.get_object_or_404(
-            OrganizationInvitation,
-            id=invitation_id,
-        )
+        with transaction.atomic():
+            invitation = get_object_or_404(
+                OrganizationInvitation.objects.select_for_update(),
+                pk=invitation_id,
+            )
 
         require_invitation_manager(
             invitation.organization,

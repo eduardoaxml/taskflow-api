@@ -17,14 +17,14 @@ class MembershipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Membership
-        fields = [
+        fields = (
             "id",
             "user_id",
             "user_email",
             "role",
             "is_active",
             "joined_at",
-        ]
+        )
         read_only_fields = fields
 
 
@@ -83,5 +83,5 @@ class MembershipUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Membership
-        fields = ["role"]
+        fields = ("role")
 

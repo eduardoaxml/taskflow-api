@@ -75,9 +75,8 @@ def test_duplicate_membership_is_rejected(user, organization):
         user=user,
     )
 
-    with pytest.raises(IntegrityError):
-        with transaction.atomic():
-            Membership.objects.create(
-                organization=organization,
-                user=user,
-            )
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Membership.objects.create(
+            organization=organization,
+            user=user,
+        )

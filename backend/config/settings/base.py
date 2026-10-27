@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 import environ
@@ -193,3 +193,10 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+DEFAULT_FROM_EMAIL = "noreply@taskflow.local"
+
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173",
+)

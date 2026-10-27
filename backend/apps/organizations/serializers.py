@@ -10,20 +10,20 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = [
+        fields = (
             "id",
             "name",
             "slug",
             "created_by",
             "created_at",
             "updated_at",
-        ]
-        read_only_fields = [
+        )
+        read_only_fields = (
             "id",
             "created_by",
             "created_at",
             "updated_at",
-        ]
+        )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -49,7 +49,7 @@ class OrganizationInvitationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrganizationInvitation
-        fields = [
+        fields = (
             "id",
             "organization",
             "email",
@@ -59,8 +59,8 @@ class OrganizationInvitationSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
             "expires_at",
-        ]
-        read_only_fields = [
+        )
+        read_only_fields = (
             "id",
             "organization",
             "invited_by",
@@ -68,4 +68,4 @@ class OrganizationInvitationSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
             "expires_at",
-        ]
+        )

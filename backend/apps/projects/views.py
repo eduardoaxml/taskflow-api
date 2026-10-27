@@ -1,10 +1,9 @@
-
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter, SearchFilter
-from drf_spectacular.utils import extend_schema
 
 from apps.organizations.models import Organization
 from apps.organizations.permissions import (
@@ -12,7 +11,13 @@ from apps.organizations.permissions import (
     IsOrganizationMember,
 )
 from apps.projects.models import Project, Task, TaskActivity, TaskComment
-from apps.projects.serializers import ProjectSerializer, TaskActivitySerializer, TaskSerializer, TaskCommentSerializer
+from apps.projects.serializers import (
+    ProjectSerializer,
+    TaskActivitySerializer,
+    TaskCommentSerializer,
+    TaskSerializer,
+)
+
 
 @extend_schema(
     summary="List project tasks",
@@ -26,7 +31,7 @@ from apps.projects.serializers import ProjectSerializer, TaskActivitySerializer,
 
 class OrganizationProjectListCreateView(generics.ListCreateAPIView):
     serializer_class = ProjectSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated)
 
     def get_permissions(self):
         classes = [permissions.IsAuthenticated]
@@ -57,7 +62,7 @@ class OrganizationProjectListCreateView(generics.ListCreateAPIView):
 
 class OrganizationProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProjectSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated)
     lookup_url_kwarg = "project_id"
 
     def get_permissions(self):
@@ -94,10 +99,10 @@ class OrganizationProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ProjectTaskListCreateView(generics.ListCreateAPIView):
     queryset = Task.objects.none()
     serializer_class = TaskSerializer
-    permission_classes = [
+    permission_classes = (
         permissions.IsAuthenticated,
         IsOrganizationMember,
-    ]
+    )
 
     def get_project(self):
         return get_object_or_404(
@@ -149,41 +154,41 @@ class ProjectTaskListCreateView(generics.ListCreateAPIView):
         context["organization"] = project.organization
         return context
     
-    filter_backends = [
+    filter_backends = (
         DjangoFilterBackend,
         SearchFilter,
         OrderingFilter,
-    ]
+    )
 
-    filterset_fields = [
+    filterset_fields = (
         "status",
         "priority",
         "assignee",
         "due_date",
-    ]
+    )
 
-    search_fields = [
+    search_fields = (
         "title",
         "description",
-    ]
+    )
 
-    ordering_fields = [
+    ordering_fields = (
         "title",
         "status",
         "priority",
         "due_date",
         "created_at",
         "updated_at",
-    ]
+    )
 
-    ordering = ["-created_at"]
+    ordering = ("-created_at")
 
 class ProjectTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TaskSerializer
-    permission_classes = [
+    permission_classes = (
         permissions.IsAuthenticated,
         IsOrganizationMember,
-    ]
+    )
     lookup_url_kwarg = "task_id"
 
     def get_project(self):
@@ -274,10 +279,6 @@ class TaskCommentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         task = self.get_task()
-        comment = serializer.save(
-            task=task,
-            author=self.request.user,
-        )
 
         TaskActivity.objects.create(
             task=task,

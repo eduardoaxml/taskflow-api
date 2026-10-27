@@ -6,10 +6,9 @@ from apps.projects.views import (
     OrganizationProjectListCreateView,
     ProjectTaskDetailView,
     ProjectTaskListCreateView,
+    TaskActivityListView,
     TaskCommentListCreateView,
-    TaskActivityListView
 )
-from .views import TaskCommentListCreateView
 
 app_name = "projects"
 

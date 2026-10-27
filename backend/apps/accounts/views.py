@@ -1,8 +1,9 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
 
 from apps.accounts.models import User
 from apps.accounts.serializers import UserRegistrationSerializer
-from drf_spectacular.utils import extend_schema
+
 
 @extend_schema(
     tags=["Authentication"],
@@ -15,4 +16,4 @@ from drf_spectacular.utils import extend_schema
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = (permissions.AllowAny)

@@ -39,16 +39,16 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-created_at"]
-        constraints = [
+        ordering = ("-created_at",)
+        constraints = (
             models.UniqueConstraint(
                 fields=["organization", "slug"],
                 name="unique_project_slug_per_organization",
             ),
-        ]
-        indexes = [
+        )
+        indexes = (
             models.Index(fields=["organization", "status"]),
-        ]
+        )
 
     def __str__(self):
         return f"{self.organization.name}: {self.name}"
@@ -106,12 +106,12 @@ class Task(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-created_at"]
-        indexes = [
+        ordering = ("-created_at",)
+        indexes = (
             models.Index(fields=["project", "status"]),
             models.Index(fields=["assignee", "status"]),
             models.Index(fields=["project", "due_date"]),
-        ]
+        )
 
     def __str__(self):
         return self.title
@@ -134,20 +134,20 @@ class TaskComment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["created_at"]
+        ordering = ("created_at",)
 
     def __str__(self):
         return f"Comment on {self.task_id} by {self.author_id}"
     
 
 class TaskActivity(models.Model):
-    ACTION_CHOICES = [
+    ACTION_CHOICES = (
         ("CREATED", "Task created"),
         ("STATUS_CHANGED", "Status changed"),
         ("PRIORITY_CHANGED", "Priority changed"),
         ("ASSIGNED", "Task assigned"),
         ("COMMENT_ADDED", "Comment added"),
-    ]
+    )
 
     id = models.UUIDField(
         primary_key=True,
@@ -169,7 +169,7 @@ class TaskActivity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ("-created_at",)
 
     def __str__(self):
         return f"{self.action} - {self.task_id}"
