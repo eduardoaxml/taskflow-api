@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { TaskComment } from "../types/api";
 import { createTaskComment, getTaskComments } from "../services/commentService";
 
@@ -20,27 +20,39 @@ export default function TaskComments({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const loadComments = useCallback(async () => {
-    try {
-      setError("");
-      const data = await getTaskComments(
-        organizationId,
-        projectId,
-        taskId,
-        request,
-      );
-      setComments(data);
-    } catch {
-      setError("Unable to load comments.");
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId, projectId, taskId, request]);
-
   useEffect(() => {
-    void loadComments();
-  }, [loadComments]);
+    let cancelled = false;
+
+    async function fetchComments() {
+      try {
+        const data = await getTaskComments(
+          organizationId,
+          projectId,
+          taskId,
+          request,
+        );
+
+        if (!cancelled) {
+          setError("");
+          setComments(data);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Unable to load comments.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void fetchComments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId, projectId, taskId, request]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

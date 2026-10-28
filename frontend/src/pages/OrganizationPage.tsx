@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { ApiError } from "../services/apiClient";
 import { getProjects } from "../services/projectService";
 import CreateProjectForm from "../components/CreateProjectForm";
@@ -11,14 +11,17 @@ import OrganizationMembers from "../components/OrganizationMembers";
 export default function OrganizationPage() {
   const { organizationId } = useParams();
   const { request } = useAuth();
-
+  const requestIdRef = useRef(0);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   const loadProjects = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+
     if (!organizationId) {
-      setError("Organization ID is missing.");
+      setProjects([]);
+      setError("");
       setIsLoading(false);
       return;
     }
@@ -27,21 +30,35 @@ export default function OrganizationPage() {
     setError("");
 
     try {
-      const response = await getProjects(organizationId, request);
-      setProjects(response.results);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Unable to load projects. Please try again.");
+      const data = await getProjects(organizationId, request);
+
+      if (requestId === requestIdRef.current) {
+        setProjects(data.results);
+      }
+    } catch (error: unknown) {
+      if (requestId === requestIdRef.current) {
+        setError(
+          error instanceof ApiError
+            ? error.message
+            : "Unable to load projects.",
+        );
       }
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [organizationId, request]);
 
   useEffect(() => {
-    void loadProjects();
+    const timeoutId = window.setTimeout(() => {
+      void loadProjects();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      requestIdRef.current += 1;
+    };
   }, [loadProjects]);
 
   return (

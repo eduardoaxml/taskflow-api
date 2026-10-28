@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task, TaskPriority, TaskStatus } from "../types/api";
 import { ApiError } from "../services/apiClient";
 import { deleteTask, getTasks } from "../services/taskService";
@@ -34,25 +34,40 @@ export default function ProjectTasks({
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "ALL">(
     "ALL",
   );
+  const requestIdRef = useRef(0);
+
+  const fetchTasks = useCallback(
+    () => getTasks(organizationId, projectId, request),
+    [organizationId, projectId, request],
+  );
 
   const loadTasks = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+
     setIsLoading(true);
     setError("");
 
     try {
-      const response = await getTasks(organizationId, projectId, request);
+      const response = await fetchTasks();
 
-      setTasks(response.results);
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Unable to load tasks. Please try again.",
-      );
+      if (requestId === requestIdRef.current) {
+        setTasks(response.results);
+      }
+    } catch (err: unknown) {
+      if (requestId === requestIdRef.current) {
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Unable to load tasks. Please try again.",
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [organizationId, projectId, request]);
+  }, [fetchTasks]);
+
   async function handleDeleteTask(taskId: string, taskTitle: string) {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${taskTitle}"? This action cannot be undone.`,
@@ -95,8 +110,37 @@ export default function ProjectTasks({
   });
 
   useEffect(() => {
-    void loadTasks();
-  }, [loadTasks]);
+    let cancelled = false;
+
+    async function loadInitialTasks() {
+      try {
+        const response = await fetchTasks();
+
+        if (!cancelled) {
+          setTasks(response.results);
+          setError("");
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "Unable to load tasks. Please try again.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadInitialTasks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchTasks]);
 
   return (
     <section>
@@ -162,102 +206,100 @@ export default function ProjectTasks({
         <p>No tasks yet. Create the first task for this project.</p>
       )}
 
-      {!isLoading && !error && tasks.length > 0 && (
-        <ul>
-          {!isLoading && !error && filteredTasks.length > 0 && (
-            <ul>
-              {filteredTasks.map((task) => (
-                <li key={task.id} className="task-card">
-                  {editingTaskId === task.id ? (
-                    <EditTaskForm
+      <section>
+        <h5>Tasks</h5>
+
+        {filteredTasks.length > 0 ? (
+          <ul>
+            {filteredTasks.map((task) => (
+              <li key={task.id} className="task-card">
+                {editingTaskId === task.id ? (
+                  <EditTaskForm
+                    organizationId={organizationId}
+                    projectId={projectId}
+                    task={task}
+                    request={request}
+                    onSaved={() => {
+                      setEditingTaskId(null);
+                      void loadTasks();
+                    }}
+                    onCancel={() => setEditingTaskId(null)}
+                  />
+                ) : (
+                  <>
+                    <div className="task-card__header">
+                      <h5 className="task-card__title">{task.title}</h5>
+
+                      <div className="task-card__actions">
+                        <button
+                          type="button"
+                          onClick={() => setEditingTaskId(task.id)}
+                          disabled={deletingTaskId !== null}
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="button-danger"
+                          onClick={() =>
+                            void handleDeleteTask(task.id, task.title)
+                          }
+                          disabled={deletingTaskId !== null}
+                        >
+                          {deletingTaskId === task.id
+                            ? "Deleting..."
+                            : "Delete"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="task-card__description">
+                      {task.description || "No description provided."}
+                    </p>
+
+                    <div className="task-card__metadata">
+                      <span
+                        className={`status-badge status-badge--${task.status.toLowerCase()}`}
+                      >
+                        {task.status.replaceAll("_", " ")}
+                      </span>
+
+                      <span
+                        className={`priority-badge priority-badge--${task.priority.toLowerCase()}`}
+                      >
+                        {task.priority}
+                      </span>
+                    </div>
+                    <p className="task-card__assignee">
+                      <strong>Assigned to:</strong>{" "}
+                      {task.assignee_email || "Unassigned"}
+                    </p>
+
+                    <p className="task-card__due-date">
+                      Due date: {task.due_date || "No due date"}
+                    </p>
+                    <TaskComments
                       organizationId={organizationId}
                       projectId={projectId}
-                      task={task}
+                      taskId={task.id}
                       request={request}
-                      onSaved={() => {
-                        setEditingTaskId(null);
-                        void loadTasks();
-                      }}
-                      onCancel={() => setEditingTaskId(null)}
                     />
-                  ) : (
-                    <>
-                      <div className="task-card__header">
-                        <h5 className="task-card__title">{task.title}</h5>
-
-                        <div className="task-card__actions">
-                          <button
-                            type="button"
-                            onClick={() => setEditingTaskId(task.id)}
-                            disabled={deletingTaskId !== null}
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            className="button-danger"
-                            onClick={() =>
-                              void handleDeleteTask(task.id, task.title)
-                            }
-                            disabled={deletingTaskId !== null}
-                          >
-                            {deletingTaskId === task.id
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <p className="task-card__description">
-                        {task.description || "No description provided."}
-                      </p>
-
-                      <div className="task-card__metadata">
-                        <span
-                          className={`status-badge status-badge--${task.status.toLowerCase()}`}
-                        >
-                          {task.status.replaceAll("_", " ")}
-                        </span>
-
-                        <span
-                          className={`priority-badge priority-badge--${task.priority.toLowerCase()}`}
-                        >
-                          {task.priority}
-                        </span>
-                      </div>
-                      <p className="task-card__assignee">
-                        <strong>Assigned to:</strong>{" "}
-                        {task.assignee_email || "Unassigned"}
-                      </p>
-
-                      <p className="task-card__due-date">
-                        Due date: {task.due_date || "No due date"}
-                      </p>
-                      <TaskComments
-                        organizationId={organizationId}
-                        projectId={projectId}
-                        taskId={task.id}
-                        request={request}
-                      />
-                      <TaskActivityTimeline
-                        organizationId={organizationId}
-                        projectId={projectId}
-                        taskId={task.id}
-                        request={request}
-                      />
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </ul>
-      )}
-      {filteredTasks.length === 0 && tasks.length > 0 && (
-        <p>No tasks match your search or selected filters.</p>
-      )}
-
+                    <TaskActivityTimeline
+                      organizationId={organizationId}
+                      projectId={projectId}
+                      taskId={task.id}
+                      request={request}
+                    />
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No tasks match your search or selected filters.</p>
+        )}
+      </section>
       <CreateTaskForm
         organizationId={organizationId}
         projectId={projectId}

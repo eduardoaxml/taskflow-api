@@ -1,29 +1,16 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-
+import { AuthContext } from "./auth-context";
 import type { LoginCredentials, TokenPair } from "../types/auth";
 import { ApiError, apiRequest } from "../services/apiClient";
 import * as authService from "../services/authService";
 
 const STORAGE_KEY = "taskflow.auth";
-
-interface AuthContextValue {
-  tokens: TokenPair | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  signIn: (credentials: LoginCredentials) => Promise<void>;
-  signOut: () => void;
-  request: <T>(path: string, options?: RequestInit) => Promise<T>;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function readStoredTokens(): TokenPair | null {
   try {
@@ -131,14 +118,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
-
-  return context;
 }

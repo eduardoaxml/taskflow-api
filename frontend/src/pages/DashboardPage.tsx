@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { ApiError } from "../services/apiClient";
 // import { getOrganizations } from "../services/organizationService";
 import type { Organization } from "../types/api";
@@ -37,8 +37,42 @@ export default function DashboardPage() {
   }, [request]);
 
   useEffect(() => {
-    void loadOrganizations();
-  }, [loadOrganizations]);
+    let cancelled = false;
+
+    async function fetchOrganizations() {
+      try {
+        const response = await request<{
+          count: number;
+          next: string | null;
+          previous: string | null;
+          results: Organization[];
+        }>("organizations/");
+
+        if (!cancelled) {
+          setOrganizations(response.results);
+          setError("");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          if (err instanceof ApiError) {
+            setError(err.message);
+          } else {
+            setError("Unable to load organizations.");
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void fetchOrganizations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [request]);
 
   if (!tokens) {
     return <p>Loading authentication...</p>;

@@ -21,9 +21,9 @@ export default function OrganizationMembers({
     async function loadMembers() {
       try {
         const response = await getOrganizationMembers(organizationId, request);
-
         if (active) {
           setMembers(response.results.filter((member) => member.is_active));
+          setError("");
         }
       } catch {
         if (active) setError("Unable to load organization members.");
