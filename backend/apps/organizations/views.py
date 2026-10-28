@@ -93,7 +93,7 @@ class OrganizationMembershipListCreateView(generics.ListCreateAPIView):
         )
 
     def get_permissions(self):
-        permission_classes = [permissions.IsAuthenticated]
+        permission_classes = list(self.permission_classes)
 
         if self.request.method == "POST":
             permission_classes.append(IsOrganizationManager)
@@ -146,8 +146,7 @@ class OrganizationMembershipDetailView(generics.RetrieveUpdateDestroyAPIView):
         ).select_related("user", "organization").distinct()
 
     def get_permissions(self):
-        permission_classes = [permissions.IsAuthenticated]
-
+        permission_classes = list(self.permission_classes)
         if self.request.method in ("PATCH", "PUT", "DELETE"):
             permission_classes.append(IsOrganizationManager)
         else:

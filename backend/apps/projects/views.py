@@ -31,7 +31,7 @@ from apps.projects.serializers import (
 
 class OrganizationProjectListCreateView(generics.ListCreateAPIView):
     serializer_class = ProjectSerializer
-    permission_classes = (permissions.IsAuthenticated)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_permissions(self):
         classes = [permissions.IsAuthenticated]
@@ -62,11 +62,11 @@ class OrganizationProjectListCreateView(generics.ListCreateAPIView):
 
 class OrganizationProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProjectSerializer
-    permission_classes = (permissions.IsAuthenticated)
+    permission_classes = (permissions.IsAuthenticated,)
     lookup_url_kwarg = "project_id"
 
     def get_permissions(self):
-        classes = [permissions.IsAuthenticated]
+        classes = list(self.permission_classes)
         if self.request.method in ("PATCH", "PUT", "DELETE"):
             classes.append(IsOrganizationManager)
         else:

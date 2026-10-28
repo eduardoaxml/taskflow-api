@@ -21,7 +21,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "last_name",
             "password",
         )
-        read_only_fields = ("id")
+        read_only_fields = ("id",)
 
     def validate_email(self, value):
         normalized_email = User.objects.normalize_email(value.strip())

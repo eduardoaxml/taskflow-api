@@ -1,0 +1,74 @@
+name: TaskFlow CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-checks:
+    name: Backend quality checks
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: taskflow_ci
+          POSTGRES_USER: taskflow_ci
+          POSTGRES_PASSWORD: ci_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taskflow_ci -d taskflow_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      POSTGRES_DB: taskflow_ci
+      POSTGRES_USER: taskflow_ci
+      POSTGRES_PASSWORD: ci_test_password
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      SECRET_KEY: ci-only-test-secret-key-not-for-production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run Ruff
+        run: uv run ruff check apps/
+
+      - name: Run Django system checks
+        run: uv run python manage.py check
+
+      - name: Run tests
+        run: uv run pytest
+
+      - name: Validate OpenAPI schema
+        run: >-
+          uv run python manage.py spectacular
+          --file /tmp/taskflow-schema.yml
+          --validate

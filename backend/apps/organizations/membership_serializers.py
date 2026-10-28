@@ -83,5 +83,5 @@ class MembershipUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Membership
-        fields = ("role")
+        fields = ("role",)
 
