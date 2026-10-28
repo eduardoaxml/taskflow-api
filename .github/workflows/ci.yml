@@ -39,7 +39,7 @@ jobs:
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: "5432"
       DJANGO_SECRET_KEY: ci-only-test-secret-key-not-for-production
-
+      DJANGO_DEBUG: "True"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
