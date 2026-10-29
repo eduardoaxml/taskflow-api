@@ -9,6 +9,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
         trim_whitespace=False,
+        min_length=12,
         style={"input_type": "password"},
     )
 

@@ -21,6 +21,11 @@ urlpatterns = [
         name="organization-list",
     ),
     path(
+        "organizations/",
+        OrganizationListCreateView.as_view(),
+        name="organization-list",
+    ),
+    path(
         "<uuid:id>/",
         OrganizationDetailView.as_view(),
         name="organization-detail",

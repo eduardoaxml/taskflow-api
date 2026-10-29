@@ -8,12 +8,13 @@ import { ApiError } from "../services/apiClient";
 import { loginSchema, type LoginFormValues } from "../utils/authSchemas";
 
 import "./LoginPage.css";
+import "../styles/forms.css";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState("");
-
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -83,13 +84,22 @@ export default function LoginPage() {
             <label htmlFor="password">Password</label>
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               placeholder="Enter your password"
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? "password-error" : undefined}
               {...register("password")}
             />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword((visible) => !visible)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
             {errors.password && (
               <p id="password-error" className="field-error">
                 {errors.password.message}

@@ -18,6 +18,78 @@ TaskFlow provides organization-based collaboration, project management, task ass
 
 ## Technology Stack
 
+## Architecture
+
+### System overview
+
+```mermaid
+flowchart TB
+    User["User / Browser"]
+
+    subgraph Frontend["Frontend — React + TypeScript"]
+        UI["Pages and Components"]
+        Router["React Router"]
+        Auth["Authentication Context"]
+        APIClient["API Requests"]
+        UI --> Router
+        Router --> Auth
+        Auth --> APIClient
+    end
+
+    subgraph Backend["Backend — Django REST Framework"]
+        URLs["URL Routing"]
+        JWT["JWT Authentication"]
+        Permissions["Permissions and Membership Checks"]
+        Views["API Views"]
+        Serializers["Serializers and Validation"]
+        Models["Django Models / ORM"]
+
+        URLs --> JWT
+        JWT --> Permissions
+        Permissions --> Views
+        Views --> Serializers
+        Serializers --> Models
+    end
+
+    DB[("PostgreSQL")]
+
+    User --> UI
+    APIClient -->|"HTTP / JSON + JWT"| URLs
+    Models --> DB
+    DB --> Models
+
+    subgraph Quality["Continuous Integration"]
+        GitHub["GitHub Repository"]
+        CI["GitHub Actions"]
+        Checks["Backend Tests · Ruff · Django Checks"]
+        FrontendChecks["ESLint · TypeScript · Vite Build"]
+
+        GitHub --> CI
+        CI --> Checks
+        CI --> FrontendChecks
+    end
+
+    classDef frontend fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef backend fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef database fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef quality fill:#f3e8ff,stroke:#9333ea,color:#581c87
+
+    class UI,Router,Auth,APIClient frontend
+    class URLs,JWT,Permissions,Views,Serializers,Models backend
+    class DB database
+    class GitHub,CI,Checks,FrontendChecks quality
+```
+
+### Request and authentication flow
+
+1. The user interacts with the React interface.
+2. The frontend sends HTTP requests to the Django REST API.
+3. JWT authentication identifies the user when an endpoint requires authentication.
+4. Permission checks enforce access rules, including organization membership and roles.
+5. Serializers validate incoming data and format API responses.
+6. Django's ORM reads or writes application data in PostgreSQL.
+7. The API returns a JSON response to the frontend.
+
 ### Backend
 
 - Python
