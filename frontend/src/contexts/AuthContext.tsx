@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { AuthContext } from "./auth-context";
-import type { LoginCredentials, TokenPair } from "../types/auth";
+import type { LoginCredentials, TokenPair, UserProfile } from "../types/auth";
 import { ApiError, apiRequest } from "../services/apiClient";
 import * as authService from "../services/authService";
 
@@ -44,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tokens, setTokens] = useState<TokenPair | null>(readStoredTokens);
 
   const [isLoading] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     try {
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     setTokens(null);
+    setUser(null);
   }, []);
 
   const request = useCallback(
@@ -105,16 +107,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [tokens, signOut],
   );
 
+  useEffect(() => {
+    if (!tokens?.access) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadUser = async () => {
+      try {
+        const profile = await request<UserProfile>("auth/me/");
+
+        if (isActive) {
+          setUser(profile);
+        }
+      } catch {
+        if (isActive) {
+          setUser(null);
+        }
+      }
+    };
+
+    void loadUser();
+
+    return () => {
+      isActive = false;
+    };
+  }, [tokens, request]);
+
   const value = useMemo(
     () => ({
       tokens,
+      user,
       isAuthenticated: Boolean(tokens?.access),
       isLoading,
       signIn,
       signOut,
       request,
     }),
-    [tokens, isLoading, signIn, signOut, request],
+    [tokens, user, isLoading, signIn, signOut, request],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

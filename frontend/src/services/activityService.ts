@@ -1,4 +1,4 @@
-import type { TaskActivity } from "../types/api";
+import type { PaginatedResponse, TaskActivity } from "../types/api";
 
 type AuthenticatedRequest = <T>(
   path: string,
@@ -16,4 +16,13 @@ export async function getTaskActivities(
   );
 
   return Array.isArray(response) ? response : (response.results ?? []);
+}
+
+export function getOrganizationActivities(
+  organizationId: string,
+  request: AuthenticatedRequest,
+): Promise<PaginatedResponse<TaskActivity>> {
+  return request<PaginatedResponse<TaskActivity>>(
+    `organizations/${organizationId}/activities/`,
+  );
 }

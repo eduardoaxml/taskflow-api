@@ -1,7 +1,9 @@
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
+from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 
@@ -16,6 +18,7 @@ from apps.projects.serializers import (
     TaskActivitySerializer,
     TaskCommentSerializer,
     TaskSerializer,
+    WorkspaceOverviewSerializer,
 )
 
 
@@ -306,3 +309,166 @@ class TaskActivityListView(generics.ListAPIView):
             raise PermissionDenied("Organization membership required.")
 
         return task.activities.select_related("actor").all()
+
+class OrganizationTaskActivityListView(generics.ListAPIView):
+    serializer_class = TaskActivitySerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        return (
+            TaskActivity.objects.filter(
+                task__project__organization_id=self.kwargs["organization_id"],
+                task__project__organization__memberships__user=self.request.user,
+                task__project__organization__memberships__is_active=True,
+            )
+            .select_related(
+                "actor",
+                "task",
+                "task__project",
+            )
+            .distinct()
+            .order_by("-created_at")
+        )
+
+
+class WorkspaceOverviewView(generics.GenericAPIView):
+    serializer_class = WorkspaceOverviewSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        membership_filters = {
+            "organization__memberships__user": request.user,
+            "organization__memberships__is_active": True,
+        }
+
+        projects = (
+            Project.objects.filter(**membership_filters)
+            .select_related("organization", "created_by")
+            .distinct()
+        )
+
+        tasks = (
+            Task.objects.filter(
+                project__organization__memberships__user=request.user,
+                project__organization__memberships__is_active=True,
+            )
+            .select_related(
+                "project",
+                "project__organization",
+                "created_by",
+                "assignee",
+            )
+            .distinct()
+        )
+
+        project_metrics = projects.aggregate(
+            total_projects=Count("id", distinct=True),
+            planning=Count(
+                "id",
+                filter=Q(status="PLANNING"),
+                distinct=True,
+            ),
+            active=Count(
+                "id",
+                filter=Q(status="ACTIVE"),
+                distinct=True,
+            ),
+            completed=Count(
+                "id",
+                filter=Q(status="COMPLETED"),
+                distinct=True,
+            ),
+            archived=Count(
+                "id",
+                filter=Q(status="ARCHIVED"),
+                distinct=True,
+            ),
+        )
+
+        task_metrics = tasks.aggregate(
+            
+            total_tasks=Count("id", distinct=True),
+            completed_tasks=Count(
+                "id",
+                filter=Q(status="DONE"),
+                distinct=True,
+            ),
+            pending_tasks=Count(
+                "id",
+                filter=~Q(status="DONE"),
+                distinct=True,
+            ),
+            todo=Count(
+                "id",
+                filter=Q(status="TODO"),
+                distinct=True,
+            ),
+            in_progress=Count(
+                "id",
+                filter=Q(status="IN_PROGRESS"),
+                distinct=True,
+            ),
+            blocked=Count(
+                "id",
+                filter=Q(status="BLOCKED"),
+                distinct=True,
+            ),
+            done=Count(
+                "id",
+                filter=Q(status="DONE"),
+                distinct=True,
+            ),
+            low=Count(
+                "id",
+                filter=Q(priority="LOW"),
+                distinct=True,
+            ),
+            medium=Count(
+                "id",
+                filter=Q(priority="MEDIUM"),
+                distinct=True,
+            ),
+            high=Count(
+                "id",
+                filter=Q(priority="HIGH"),
+                distinct=True,
+            ),
+            urgent=Count(
+                "id",
+                filter=Q(priority="URGENT"),
+                distinct=True,
+            ),
+        )
+
+        metrics = {
+            "total_projects": project_metrics["total_projects"],
+            "total_tasks": task_metrics["total_tasks"],
+            "completed_tasks": task_metrics["completed_tasks"],
+            "pending_tasks": task_metrics["pending_tasks"],
+            "projects_by_status": {
+                "PLANNING": project_metrics["planning"],
+                "ACTIVE": project_metrics["active"],
+                "COMPLETED": project_metrics["completed"],
+                "ARCHIVED": project_metrics["archived"],
+            },
+            "tasks_by_status": {
+                "TODO": task_metrics["todo"],
+                "IN_PROGRESS": task_metrics["in_progress"],
+                "BLOCKED": task_metrics["blocked"],
+                "DONE": task_metrics["done"],
+            },
+            "tasks_by_priority": {
+                "LOW": task_metrics["low"],
+                "MEDIUM": task_metrics["medium"],
+                "HIGH": task_metrics["high"],
+                "URGENT": task_metrics["urgent"],
+            },
+        }
+
+        serializer = self.get_serializer({
+            "metrics": metrics,
+            "projects": projects,
+            "tasks": tasks,
+        })
+
+        return Response(serializer.data)

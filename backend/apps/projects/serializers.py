@@ -153,3 +153,26 @@ class TaskActivitySerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = fields
+
+class WorkspaceMetricsSerializer(serializers.Serializer):
+    total_projects = serializers.IntegerField()
+    projects_by_status = serializers.DictField(
+        child=serializers.IntegerField(),
+    )
+    total_tasks = serializers.IntegerField()
+    completed_tasks = serializers.IntegerField()
+    pending_tasks = serializers.IntegerField()
+
+    tasks_by_status = serializers.DictField(
+        child=serializers.IntegerField(),
+    )
+
+    tasks_by_priority = serializers.DictField(
+        child=serializers.IntegerField(),
+    )
+
+
+class WorkspaceOverviewSerializer(serializers.Serializer):
+    metrics = WorkspaceMetricsSerializer(read_only=True)
+    projects = ProjectSerializer(many=True, read_only=True)
+    tasks = TaskSerializer(many=True, read_only=True)

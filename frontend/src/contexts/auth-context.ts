@@ -1,8 +1,9 @@
 import { createContext } from "react";
-import type { TokenPair, LoginCredentials } from "../types/auth";
+import type { TokenPair, LoginCredentials, UserProfile } from "../types/auth";
 
 export interface AuthContextValue {
   tokens: TokenPair | null;
+  user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (credentials: LoginCredentials) => Promise<void>;
