@@ -7,8 +7,10 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (credentials: LoginCredentials) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   request: <T>(path: string, options?: RequestInit) => Promise<T>;
+  updateUser: (user: UserProfile) => void;
+  clearSession: () => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(

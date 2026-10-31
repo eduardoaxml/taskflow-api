@@ -63,46 +63,79 @@ export default function CreateProjectForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Create a project</h2>
+    <form className="create-project-form" onSubmit={handleSubmit}>
+      <div className="create-project-form__header">
+        <div>
+          <p className="eyebrow">PROJECT MANAGEMENT</p>
+          <h2>Create a project</h2>
+          <p>Start organizing your work in a new project.</p>
+        </div>
 
-      <label htmlFor="project-name">Project name</label>
-      <input
-        id="project-name"
-        value={name}
-        onChange={(event) => {
-          const nextName = event.target.value;
-          setName(nextName);
+        <span className="create-project-form__icon" aria-hidden="true">
+          +
+        </span>
+      </div>
 
-          if (!slugEdited) {
-            setSlug(createSlug(nextName));
-          }
-        }}
-        required
-        maxLength={150}
-        placeholder="e.g. Website Redesign"
-      />
+      <div className="create-project-form__fields">
+        <div className="create-project-form__field">
+          <label htmlFor="project-name">Project name</label>
+          <input
+            id="project-name"
+            value={name}
+            onChange={(event) => {
+              const nextName = event.target.value;
+              setName(nextName);
 
-      <label htmlFor="project-slug">Slug</label>
-      <input
-        id="project-slug"
-        value={slug}
-        onChange={(event) => {
-          setSlug(event.target.value);
-          setSlugEdited(true);
-        }}
-        required
-        maxLength={150}
-        pattern="[a-zA-Z0-9-]+"
-        title="Use letters, numbers, and hyphens."
-        placeholder="e.g. website-redesign"
-      />
+              if (!slugEdited) {
+                setSlug(createSlug(nextName));
+              }
+            }}
+            required
+            maxLength={150}
+            placeholder="e.g. Website Redesign"
+          />
+          <span className="create-project-form__hint">
+            Choose a descriptive name for your project.
+          </span>
+        </div>
 
-      {error && <p role="alert">{error}</p>}
+        <div className="create-project-form__field">
+          <label htmlFor="project-slug">Project slug</label>
+          <input
+            id="project-slug"
+            value={slug}
+            onChange={(event) => {
+              setSlug(event.target.value);
+              setSlugEdited(true);
+            }}
+            required
+            maxLength={150}
+            pattern="[a-zA-Z0-9-]+"
+            title="Use letters, numbers, and hyphens."
+            placeholder="e.g. website-redesign"
+          />
+          <span className="create-project-form__hint">
+            Used in project URLs. Only letters, numbers, and hyphens.
+          </span>
+        </div>
+      </div>
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Creating..." : "Create project"}
-      </button>
+      {error && (
+        <p className="create-project-form__error" role="alert">
+          {error}
+        </p>
+      )}
+
+      <div className="create-project-form__footer">
+        <button
+          className="create-project-form__submit"
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Creating..." : "Create project"}
+          {!isSubmitting && <span aria-hidden="true"> →</span>}
+        </button>
+      </div>
     </form>
   );
 }

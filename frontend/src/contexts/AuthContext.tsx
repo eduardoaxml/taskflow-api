@@ -45,6 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [isLoading] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const updateUser = useCallback((updatedUser: UserProfile) => {
+    setUser(updatedUser);
+  }, []);
 
   useEffect(() => {
     try {
@@ -62,11 +65,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const tokenPair = await authService.login(credentials);
     setTokens(tokenPair);
   }, []);
-
-  const signOut = useCallback(() => {
+  const clearSession = useCallback(() => {
     setTokens(null);
     setUser(null);
   }, []);
+  const signOut = useCallback(async () => {
+    const currentTokens = tokens;
+
+    try {
+      if (currentTokens?.access && currentTokens.refresh) {
+        await authService.logout(currentTokens.refresh, currentTokens.access);
+      }
+    } catch {
+      // Always clear the local session.
+    } finally {
+      clearSession();
+    }
+  }, [tokens, clearSession]);
 
   const request = useCallback(
     async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
@@ -143,9 +158,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       signIn,
       signOut,
+      clearSession,
       request,
+      updateUser,
     }),
-    [tokens, user, isLoading, signIn, signOut, request],
+    [
+      tokens,
+      user,
+      isLoading,
+      signIn,
+      signOut,
+      clearSession,
+      request,
+      updateUser,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

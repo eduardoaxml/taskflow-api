@@ -27,3 +27,16 @@ export function refreshAccessToken(
     body: JSON.stringify({ refresh }),
   });
 }
+export function logout(
+  refresh: string,
+  accessToken: string,
+): Promise<{ detail: string }> {
+  return apiRequest<{ detail: string }>(
+    "auth/logout/",
+    {
+      method: "POST",
+      body: JSON.stringify({ refresh }),
+    },
+    accessToken,
+  );
+}

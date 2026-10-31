@@ -10,6 +10,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import OrganizationPage from "../pages/OrganizationPage";
 import ProjectOverviewPage from "../pages/ProjectOverviewPage";
 import TaskDetailPage from "../pages/TaskDetailPage";
+import ProfilePage from "../pages/ProfilePage";
 
 export default function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export default function AppRouter() {
           <Route path="/register" element={<RegisterPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route
               path="/organizations/:organizationId"
               element={<OrganizationPage />}

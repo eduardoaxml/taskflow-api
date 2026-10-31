@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { getOrganizationMembers } from "../services/memberService";
-import type { Project, OrganizationMember } from "../types/api";
+import { getAllOrganizationMembers } from "../services/memberService";
+import type { Project, OrganizationMember, TaskStatus } from "../types/api";
 import { deleteProject } from "../services/projectService";
 import { useAuth } from "../hooks/useAuth";
 import { ApiError } from "../services/apiClient";
@@ -13,15 +13,31 @@ import {
 import ProjectStatusBadge from "../components/ProjectStatusBadge";
 import ProjectTasks from "../components/ProjectTasks";
 import "./ProjectOverviewPage.css";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import ProjectTaskSummary from "../components/ProjectTaskSummary";
+import {
+  getProjectTaskSummary,
+  type ProjectTaskSummary as ProjectTaskSummaryData,
+} from "../services/taskService";
 
 export default function ProjectOverviewPage() {
   const navigate = useNavigate();
   const { organizationId, projectId } = useParams();
   const { request, user } = useAuth();
   const requestIdRef = useRef(0);
+  const summaryRequestIdRef = useRef(0);
   const [currentMembership, setCurrentMembership] =
     useState<OrganizationMember | null>(null);
   const [project, setProject] = useState<Project | null>(null);
+  const [taskSummary, setTaskSummary] = useState<ProjectTaskSummaryData | null>(
+    null,
+  );
+  const [taskStatusFilter, setTaskStatusFilter] = useState<TaskStatus | "ALL">(
+    "ALL",
+  );
+  const [overdueFilter, setOverdueFilter] = useState(false);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -223,18 +239,17 @@ export default function ProjectOverviewPage() {
       }
 
       try {
-        const response = await getOrganizationMembers(organizationId, request);
-        console.log("response:", response);
-        console.log("user:", user);
-        console.log("first member:", response.results?.[0]);
+        const members = await getAllOrganizationMembers(
+          organizationId,
+          request,
+        );
 
         if (!active) return;
 
-        const membership = response.results.find(
+        const membership = members.find(
           (member) =>
             String(member.user_id) === String(user.id) && member.is_active,
         );
-        console.log("matched membership:", membership);
 
         setCurrentMembership(membership ?? null);
       } catch {
@@ -265,238 +280,328 @@ export default function ProjectOverviewPage() {
     };
   }, [loadProject]);
 
+  const refreshTaskSummary = useCallback(async () => {
+    if (!organizationId || !projectId) {
+      setTaskSummary(null);
+      setIsSummaryLoading(false);
+      return;
+    }
+
+    const requestId = ++summaryRequestIdRef.current;
+
+    setIsSummaryLoading(true);
+    setSummaryError("");
+
+    try {
+      const summary = await getProjectTaskSummary(
+        organizationId,
+        projectId,
+        request,
+      );
+
+      if (requestId === summaryRequestIdRef.current) {
+        setTaskSummary(summary);
+      }
+    } catch (error: unknown) {
+      if (requestId === summaryRequestIdRef.current) {
+        setTaskSummary(null);
+        setSummaryError(
+          error instanceof ApiError
+            ? error.message
+            : "Unable to load project task metrics.",
+        );
+      }
+    } finally {
+      if (requestId === summaryRequestIdRef.current) {
+        setIsSummaryLoading(false);
+      }
+    }
+  }, [organizationId, projectId, request]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshTaskSummary();
+
+    return () => {
+      summaryRequestIdRef.current += 1;
+    };
+  }, [refreshTaskSummary]);
+
   if (isLoading) {
     return (
-      <main className="project-overview-page">
-        <p>Loading project...</p>
-      </main>
+      <DashboardLayout
+        activeSection="organizations"
+        organizationsTo={`/organizations/${organizationId}`}
+      >
+        <div className="project-overview-page">
+          <p>Loading project...</p>
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (error || !project) {
     return (
-      <main className="project-overview-page">
-        <Link to={`/organizations/${organizationId}`}>
-          ← Back to organization
-        </Link>
+      <DashboardLayout
+        activeSection="organizations"
+        organizationsTo={`/organizations/${organizationId}`}
+      >
+        <div className="project-overview-page">
+          <Link to={`/organizations/${organizationId}`}>
+            ← Back to organization
+          </Link>
 
-        <div className="project-overview-error" role="alert">
-          <h1>Unable to open project</h1>
-          <p>{error || "Project not found."}</p>
+          <div className="project-overview-error" role="alert">
+            <h1>Unable to open project</h1>
+            <p>{error || "Project not found."}</p>
 
-          <button type="button" onClick={() => void loadProject()}>
-            Try again
-          </button>
+            <button type="button" onClick={() => void loadProject()}>
+              Try again
+            </button>
+          </div>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="project-overview-page">
-      <header className="project-overview-header">
-        <nav aria-label="Breadcrumb">
-          <Link to="/dashboard">Dashboard</Link>
-          <span>/</span>
-          <Link to={`/organizations/${organizationId}`}>Organization</Link>
-          <span>/</span>
-          <span>{project.name}</span>
-        </nav>
+    <DashboardLayout
+      activeSection="organizations"
+      organizationsTo={`/organizations/${organizationId}`}
+    >
+      <div className="project-overview-page">
+        <header className="project-overview-header">
+          <nav aria-label="Breadcrumb">
+            <Link to="/dashboard">Dashboard</Link>
+            <span>/</span>
+            <Link to={`/organizations/${organizationId}`}>Organization</Link>
+            <span>/</span>
+            <span>{project.name}</span>
+          </nav>
 
-        <div className="project-overview-title">
-          <div>
-            <p className="project-overview-eyebrow">PROJECT OVERVIEW</p>
-            <h1>{project.name}</h1>
-            <p>{project.description || "No description provided."}</p>
-          </div>
-          {deleteError && <p role="alert">{deleteError}</p>}
-          <span
-            className={`project-status project-status--${project.status.toLowerCase()}`}
-          >
-            {project.status.replace("_", " ")}
-          </span>
-          {canManageProject && (
-            <button
-              ref={editButtonRef}
-              type="button"
-              onClick={() => {
-                setFormError("");
-                setIsEditing(true);
-              }}
+          <div className="project-overview-title">
+            <div>
+              <p className="project-overview-eyebrow">PROJECT OVERVIEW</p>
+              <h1>{project.name}</h1>
+              <p>{project.description || "No description provided."}</p>
+            </div>
+            {deleteError && <p role="alert">{deleteError}</p>}
+            <span
+              className={`project-status project-status--${project.status.toLowerCase()}`}
             >
-              Edit project
-            </button>
-          )}
-          {canManageProject && (
-            <button
-              type="button"
-              onClick={() => void handleDeleteProject()}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete Project"}
-            </button>
-          )}
-        </div>
-      </header>
-      {isEditing && (
-        <div
-          className="project-modal-overlay"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !isSaving) {
-              setIsEditing(false);
-              setFormError("");
-            }
-          }}
-        >
-          <section
-            ref={modalRef}
-            className="project-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="project-modal-title"
-          >
-            <header className="project-modal-header">
-              <div>
-                <p className="project-overview-eyebrow">PROJECT SETTINGS</p>
-                <h2 id="project-modal-title">Edit project</h2>
-              </div>
-
+              {project.status.replace("_", " ")}
+            </span>
+            {canManageProject && (
               <button
+                ref={editButtonRef}
                 type="button"
-                className="project-modal-close"
-                aria-label="Close modal"
-                disabled={isSaving}
                 onClick={() => {
-                  setIsEditing(false);
                   setFormError("");
+                  setIsEditing(true);
                 }}
               >
-                &times;
+                Edit project
               </button>
-            </header>
-
-            <form onSubmit={handleUpdateProject}>
-              <div className="project-modal-body">
-                <div className="project-form-field">
-                  <label htmlFor="project-name">Project name</label>
-                  <input
-                    id="project-name"
-                    type="text"
-                    value={formData.name}
-                    maxLength={200}
-                    required
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        name: event.target.value,
-                      }))
-                    }
-                  />
+            )}
+            {canManageProject && (
+              <button
+                type="button"
+                onClick={() => void handleDeleteProject()}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Project"}
+              </button>
+            )}
+          </div>
+        </header>
+        {isEditing && (
+          <div
+            className="project-modal-overlay"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !isSaving) {
+                setIsEditing(false);
+                setFormError("");
+              }
+            }}
+          >
+            <section
+              ref={modalRef}
+              className="project-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="project-modal-title"
+            >
+              <header className="project-modal-header">
+                <div>
+                  <p className="project-overview-eyebrow">PROJECT SETTINGS</p>
+                  <h2 id="project-modal-title">Edit project</h2>
                 </div>
 
-                <div className="project-form-field">
-                  <label htmlFor="project-description">Description</label>
-                  <textarea
-                    id="project-description"
-                    value={formData.description}
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        description: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="project-form-field">
-                  <label htmlFor="project-status">Status</label>
-                  <select
-                    id="project-status"
-                    value={formData.status}
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        status: event.target
-                          .value as UpdateProjectPayload["status"],
-                      }))
-                    }
-                  >
-                    <option value="PLANNING">Planning</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="ARCHIVED">Archived</option>
-                  </select>
-                </div>
-
-                {formError && (
-                  <p role="alert" className="project-edit-error">
-                    {formError}
-                  </p>
-                )}
-              </div>
-
-              <footer className="project-modal-footer">
                 <button
                   type="button"
-                  className="project-modal-cancel"
+                  className="project-modal-close"
+                  aria-label="Close modal"
                   disabled={isSaving}
                   onClick={() => {
-                    setFormData({
-                      name: project.name,
-                      description: project.description ?? "",
-                      status: project.status,
-                    });
-                    setFormError("");
                     setIsEditing(false);
+                    setFormError("");
                   }}
                 >
-                  Cancel
+                  &times;
                 </button>
+              </header>
 
-                <button
-                  type="submit"
-                  className="project-modal-save"
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Saving..." : "Save changes"}
-                </button>
-              </footer>
-            </form>
-          </section>
-        </div>
-      )}
-      <section className="project-overview-details">
-        <article className="project-detail-card">
-          <span>Project name</span>
-          <strong>{project.name}</strong>
-        </article>
+              <form onSubmit={handleUpdateProject}>
+                <div className="project-modal-body">
+                  <div className="project-form-field">
+                    <label htmlFor="project-name">Project name</label>
+                    <input
+                      id="project-name"
+                      type="text"
+                      value={formData.name}
+                      maxLength={200}
+                      required
+                      onChange={(event) =>
+                        setFormData((previous) => ({
+                          ...previous,
+                          name: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
 
-        <article className="project-detail-card">
-          <span>Slug</span>
-          <strong>{project.slug}</strong>
-        </article>
+                  <div className="project-form-field">
+                    <label htmlFor="project-description">Description</label>
+                    <textarea
+                      id="project-description"
+                      value={formData.description}
+                      onChange={(event) =>
+                        setFormData((previous) => ({
+                          ...previous,
+                          description: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
 
-        <article className="project-detail-card">
-          <span>Status</span>
-          <ProjectStatusBadge status={project.status} />
-        </article>
-      </section>
+                  <div className="project-form-field">
+                    <label htmlFor="project-status">Status</label>
+                    <select
+                      id="project-status"
+                      value={formData.status}
+                      onChange={(event) =>
+                        setFormData((previous) => ({
+                          ...previous,
+                          status: event.target
+                            .value as UpdateProjectPayload["status"],
+                        }))
+                      }
+                    >
+                      <option value="PLANNING">Planning</option>
+                      <option value="ACTIVE">Active</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="ARCHIVED">Archived</option>
+                    </select>
+                  </div>
 
-      <section className="project-overview-tasks">
-        <div className="project-section-heading">
-          <div>
-            <p className="project-overview-eyebrow">WORK MANAGEMENT</p>
-            <h2>Project tasks</h2>
-            <p>Manage and track the work assigned to this project.</p>
+                  {formError && (
+                    <p role="alert" className="project-edit-error">
+                      {formError}
+                    </p>
+                  )}
+                </div>
+
+                <footer className="project-modal-footer">
+                  <button
+                    type="button"
+                    className="project-modal-cancel"
+                    disabled={isSaving}
+                    onClick={() => {
+                      setFormData({
+                        name: project.name,
+                        description: project.description ?? "",
+                        status: project.status,
+                      });
+                      setFormError("");
+                      setIsEditing(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="project-modal-save"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Saving..." : "Save changes"}
+                  </button>
+                </footer>
+              </form>
+            </section>
           </div>
-        </div>
+        )}
+        <section className="project-overview-details">
+          <article className="project-detail-card">
+            <span>Project name</span>
+            <strong>{project.name}</strong>
+          </article>
 
-        <ProjectTasks
-          organizationId={organizationId!}
-          projectId={project.id}
-          request={request}
-        />
-      </section>
-    </main>
+          <article className="project-detail-card">
+            <span>Slug</span>
+            <strong>{project.slug}</strong>
+          </article>
+
+          <article className="project-detail-card">
+            <span>Status</span>
+            <ProjectStatusBadge status={project.status} />
+          </article>
+        </section>
+
+        <section className="project-overview-tasks">
+          {isSummaryLoading && (
+            <p className="project-task-summary__message">
+              Loading task metrics...
+            </p>
+          )}
+
+          {summaryError && (
+            <p
+              className="project-task-summary__message project-task-summary__message--error"
+              role="alert"
+            >
+              {summaryError}
+            </p>
+          )}
+
+          {!isSummaryLoading && !summaryError && taskSummary && (
+            <ProjectTaskSummary
+              summary={taskSummary}
+              onSelectStatus={setTaskStatusFilter}
+              isOverdueSelected={overdueFilter}
+              onSelectOverdue={() => setOverdueFilter((current) => !current)}
+            />
+          )}
+          <div className="project-section-heading">
+            <div>
+              <p className="project-overview-eyebrow">WORK MANAGEMENT</p>
+              <h2>Project tasks</h2>
+              <p>Manage and track the work assigned to this project.</p>
+            </div>
+          </div>
+
+          <ProjectTasks
+            organizationId={organizationId!}
+            projectId={project.id}
+            request={request}
+            statusFilter={taskStatusFilter}
+            onStatusFilterChange={setTaskStatusFilter}
+            overdueFilter={overdueFilter}
+            onOverdueFilterChange={setOverdueFilter}
+            onTasksChanged={refreshTaskSummary}
+          />
+        </section>
+      </div>
+    </DashboardLayout>
   );
 }

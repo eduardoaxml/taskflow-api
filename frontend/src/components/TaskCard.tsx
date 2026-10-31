@@ -25,6 +25,22 @@ interface TaskCardProps {
   onCancel: () => void;
 }
 
+function formatTaskDueDate(date: string | null): string {
+  if (!date) {
+    return "No due date";
+  }
+
+  const [year, month, day] = date.split("-").map(Number);
+
+  const parsedDate = new Date(year, month - 1, day);
+
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(parsedDate);
+}
+
 export default function TaskCard({
   task,
   organizationId,
@@ -85,27 +101,44 @@ export default function TaskCard({
           </p>
 
           <div className="task-card__metadata">
-            <div>
-              <span>Status: </span>
+            <div className="task-card__metadata-item">
+              <span className="task-card__metadata-label">Status</span>
               <TaskStatusBadge status={task.status} />
             </div>
 
-            <div>
-              <span>Priority: </span>
+            <div className="task-card__metadata-item">
+              <span className="task-card__metadata-label">Priority</span>
               <TaskPriorityBadge priority={task.priority} />
             </div>
+
             {task.is_overdue && (
-              <span className="task-badge task-badge--overdue">Overdue</span>
+              <div className="task-card__metadata-item">
+                <span className="task-badge task-badge--overdue">Overdue</span>
+              </div>
             )}
           </div>
 
-          <p className="task-card__assignee">
-            <strong>Assigned to:</strong> {task.assignee_email || "Unassigned"}
-          </p>
+          <div className="task-card__assignee">
+            <span className="task-card__assignee-label">Assignee</span>
 
-          <p className="task-card__due-date">
-            Due date: {task.due_date || "No due date"}
-          </p>
+            <span className="task-card__assignee-value">
+              {task.assignee_email || "Unassigned"}
+            </span>
+          </div>
+
+          <div className="task-card__due-date">
+            <span className="task-card__due-date-label">Due date</span>
+
+            <span
+              className={
+                task.is_overdue
+                  ? "task-card__due-date-value task-card__due-date-value--overdue"
+                  : "task-card__due-date-value"
+              }
+            >
+              {formatTaskDueDate(task.due_date)}
+            </span>
+          </div>
 
           <TaskComments
             organizationId={organizationId}

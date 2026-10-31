@@ -1,0 +1,638 @@
+.organization-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.organization-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.organization-page__header h1 {
+  margin: 0;
+  color: var(--taskflow-text);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.organization-page__description {
+  margin: 8px 0 0;
+  color: var(--taskflow-muted);
+  font-size: 14px;
+}
+
+.organization-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  padding: 18px;
+  background: var(--taskflow-surface);
+  border: 1px solid var(--taskflow-border);
+  border-radius: var(--taskflow-radius);
+  box-shadow: var(--taskflow-shadow);
+}
+
+.organization-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 170px;
+  flex: 1;
+}
+
+.organization-page__field label {
+  color: var(--taskflow-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.organization-page__field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--taskflow-text);
+  background: var(--taskflow-background);
+  border: 1px solid var(--taskflow-border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.organization-page__projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.organization-page__projects-header h2 {
+  margin: 0;
+  color: var(--taskflow-text);
+  font-size: 18px;
+}
+
+.organization-page__project-count {
+  color: var(--taskflow-muted);
+  font-size: 13px;
+}
+
+.organization-page__project-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.organization-project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  background: var(--taskflow-surface);
+  border: 1px solid var(--taskflow-border);
+  border-radius: var(--taskflow-radius);
+  box-shadow: var(--taskflow-shadow);
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.organization-project-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd8ed;
+  box-shadow: 0 8px 24px rgb(25 45 80 / 8%);
+}
+
+.organization-project-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.organization-project-card h3 {
+  margin: 0;
+  color: var(--taskflow-text);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.organization-project-card__slug {
+  margin: 6px 0 0;
+  color: var(--taskflow-muted);
+  font-size: 12px;
+}
+
+.organization-project-card__description {
+  flex: 1;
+  margin: 0;
+  color: var(--taskflow-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.organization-project-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--taskflow-border);
+}
+
+.organization-project-card__link {
+  color: var(--taskflow-blue);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.organization-project-card__link:hover {
+  color: var(--taskflow-blue-hover);
+  text-decoration: underline;
+}
+
+.organization-page__empty {
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--taskflow-surface);
+  border: 1px dashed var(--taskflow-border);
+  border-radius: var(--taskflow-radius);
+}
+
+.organization-page__empty h2 {
+  margin: 0 0 8px;
+  color: var(--taskflow-text);
+  font-size: 18px;
+}
+
+.organization-page__empty p {
+  margin: 0;
+  color: var(--taskflow-muted);
+  font-size: 14px;
+}
+
+.organization-page__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.organization-page__pagination button {
+  min-height: 38px;
+  padding: 0 14px;
+  color: var(--taskflow-text);
+  background: var(--taskflow-surface);
+  border: 1px solid var(--taskflow-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.organization-page__pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.organization-page__pagination span {
+  color: var(--taskflow-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .organization-page__header {
+    flex-direction: column;
+  }
+
+  .organization-page__project-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .organization-page__toolbar {
+    align-items: stretch;
+  }
+
+  .organization-page__field {
+    min-width: 100%;
+  }
+
+  .organization-page__pagination {
+    gap: 10px;
+  }
+}
+
+/* Organization members */
+
+.organization-members {
+  padding: 24px;
+  background: var(--taskflow-surface);
+  border: 1px solid var(--taskflow-border);
+  border-radius: var(--taskflow-radius);
+  box-shadow: var(--taskflow-shadow);
+}
+
+.organization-members__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.organization-members__header .eyebrow {
+  margin: 0 0 6px;
+  color: var(--taskflow-blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.organization-members__header h2 {
+  margin: 0;
+  color: var(--taskflow-text);
+  font-size: 18px;
+}
+
+.organization-members__description {
+  margin: 6px 0 0;
+  color: var(--taskflow-muted);
+  font-size: 13px;
+}
+
+.organization-members__count {
+  padding: 6px 10px;
+  color: var(--taskflow-blue);
+  background: #edf3ff;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.organization-members__list {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.organization-members__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--taskflow-border);
+}
+
+.organization-members__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.organization-members__avatar {
+  display: grid;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--taskflow-blue);
+  background: #edf3ff;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.organization-members__details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.organization-members__details strong {
+  overflow: hidden;
+  color: var(--taskflow-text);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.organization-members__details > span {
+  color: var(--taskflow-muted);
+  font-size: 11px;
+}
+
+.organization-members__role {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.organization-members__role--owner {
+  color: #8055bd;
+  background: #f2ebfb;
+}
+
+.organization-members__role--admin {
+  color: #2465b5;
+  background: #eaf2ff;
+}
+
+.organization-members__role--member {
+  color: #32816c;
+  background: #e8f5ef;
+}
+
+.organization-members__state,
+.organization-members__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 90px;
+  color: var(--taskflow-muted);
+  font-size: 13px;
+}
+
+.organization-members__state p,
+.organization-members__empty p {
+  margin: 0;
+}
+
+.organization-members__empty {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.organization-members__empty > span {
+  font-size: 26px;
+}
+
+.organization-members__error {
+  padding: 12px;
+  color: #b42318;
+  background: #fef3f2;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.organization-members__spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--taskflow-border);
+  border-top-color: var(--taskflow-blue);
+  border-radius: 50%;
+  animation: organization-members-spin 700ms linear infinite;
+}
+
+@keyframes organization-members-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .organization-members {
+    padding: 18px;
+  }
+
+  .organization-members__item {
+    align-items: flex-start;
+  }
+
+  .organization-members__details strong {
+    max-width: 180px;
+  }
+}
+
+/* Create project form */
+
+.create-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 26px;
+  background: var(--taskflow-surface);
+  border: 1px solid var(--taskflow-border);
+  border-radius: var(--taskflow-radius);
+  box-shadow: var(--taskflow-shadow);
+}
+
+.create-project-form__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.create-project-form__header .eyebrow {
+  margin: 0 0 7px;
+  color: var(--taskflow-blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.create-project-form__header h2 {
+  margin: 0;
+  color: var(--taskflow-text);
+  font-size: 19px;
+}
+
+.create-project-form__header p:last-child {
+  margin: 7px 0 0;
+  color: var(--taskflow-muted);
+  font-size: 13px;
+}
+
+.create-project-form__icon {
+  display: grid;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: white;
+  background: var(--taskflow-blue);
+  border-radius: 10px;
+  font-size: 25px;
+}
+
+.create-project-form__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.create-project-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.create-project-form__field label {
+  color: var(--taskflow-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.create-project-form__field input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 13px;
+  color: var(--taskflow-text);
+  background: var(--taskflow-background);
+  border: 1px solid var(--taskflow-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.create-project-form__field input:focus {
+  outline: none;
+  border-color: var(--taskflow-blue);
+  box-shadow: 0 0 0 3px rgb(50 103 213 / 12%);
+}
+
+.create-project-form__hint {
+  color: var(--taskflow-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.create-project-form__error {
+  margin: 0;
+  padding: 12px 14px;
+  color: #b42318;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.create-project-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 18px;
+  border-top: 1px solid var(--taskflow-border);
+}
+
+.create-project-form__submit {
+  min-height: 42px;
+  padding: 0 18px;
+  color: white;
+  background: var(--taskflow-blue);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    opacity 160ms ease;
+}
+
+.create-project-form__submit:hover:not(:disabled) {
+  background: var(--taskflow-blue-hover);
+}
+
+.create-project-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .create-project-form {
+    padding: 19px;
+  }
+
+  .create-project-form__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .create-project-form__footer {
+    justify-content: stretch;
+  }
+
+  .create-project-form__submit {
+    width: 100%;
+  }
+}
+
+/* Organization page composition */
+
+.organization-page__overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.organization-page__create,
+.organization-page__team {
+  min-width: 0;
+}
+
+.organization-page__team .organization-members {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.organization-page__listing {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.organization-page__listing > section {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .organization-page__overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .organization-page {
+    gap: 20px;
+  }
+}
+.organization-project-card__title-link {
+  color: var(--taskflow-text);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.organization-project-card__title-link:hover {
+  color: var(--taskflow-blue);
+}
+
+.organization-project-card__title-link:focus-visible {
+  outline: 2px solid var(--taskflow-blue);
+  outline-offset: 3px;
+  border-radius: 3px;
+}

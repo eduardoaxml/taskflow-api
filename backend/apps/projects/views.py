@@ -16,6 +16,7 @@ from apps.organizations.permissions import (
 from apps.projects.models import Project, Task, TaskActivity, TaskComment
 from apps.projects.serializers import (
     ProjectSerializer,
+    ProjectTaskSummarySerializer,
     TaskActivitySerializer,
     TaskCommentSerializer,
     TaskSerializer,
@@ -120,7 +121,57 @@ class OrganizationProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
         return context
 
+class ProjectTaskSummaryView(generics.GenericAPIView):
+    serializer_class = ProjectTaskSummarySerializer
+    permission_classes = (
+        permissions.IsAuthenticated,
+        IsOrganizationMember,
+    )
 
+    def get(self, request, *args, **kwargs):
+        project = get_object_or_404(
+            Project.objects.filter(
+                organization_id=self.kwargs["organization_id"],
+                organization__memberships__user=request.user,
+                organization__memberships__is_active=True,
+            ).distinct(),
+            pk=self.kwargs["project_id"],
+        )
+
+        today = timezone.localdate()
+
+        summary = Task.objects.filter(
+            project=project,
+        ).aggregate(
+            total=Count("id"),
+            todo=Count(
+                "id",
+                filter=Q(status=Task.Status.TODO),
+            ),
+            in_progress=Count(
+                "id",
+                filter=Q(status=Task.Status.IN_PROGRESS),
+            ),
+            blocked=Count(
+                "id",
+                filter=Q(status=Task.Status.BLOCKED),
+            ),
+            completed=Count(
+                "id",
+                filter=Q(status=Task.Status.DONE),
+            ),
+            overdue=Count(
+                "id",
+                filter=(
+                    Q(due_date__lt=today)
+                    & ~Q(status=Task.Status.DONE)
+                ),
+            ),
+        )
+
+        serializer = self.get_serializer(summary)
+
+        return Response(serializer.data)
 class ProjectTaskListCreateView(generics.ListCreateAPIView):
     queryset = Task.objects.none()
     serializer_class = TaskSerializer
@@ -225,6 +276,57 @@ class ProjectTaskListCreateView(generics.ListCreateAPIView):
 
     ordering = ("-created_at",)
 
+class ProjectTaskSummaryView(generics.GenericAPIView):
+    serializer_class = ProjectTaskSummarySerializer
+    permission_classes = (
+        permissions.IsAuthenticated,
+        IsOrganizationMember,
+    )
+
+    def get(self, request, *args, **kwargs):
+        project = get_object_or_404(
+            Project.objects.filter(
+                organization_id=self.kwargs["organization_id"],
+                organization__memberships__user=request.user,
+                organization__memberships__is_active=True,
+            ).distinct(),
+            pk=self.kwargs["project_id"],
+        )
+
+        today = timezone.localdate()
+
+        summary = Task.objects.filter(
+            project=project,
+        ).aggregate(
+            total=Count("id"),
+            todo=Count(
+                "id",
+                filter=Q(status=Task.Status.TODO),
+            ),
+            in_progress=Count(
+                "id",
+                filter=Q(status=Task.Status.IN_PROGRESS),
+            ),
+            blocked=Count(
+                "id",
+                filter=Q(status=Task.Status.BLOCKED),
+            ),
+            completed=Count(
+                "id",
+                filter=Q(status=Task.Status.DONE),
+            ),
+            overdue=Count(
+                "id",
+                filter=(
+                    Q(due_date__lt=today)
+                    & ~Q(status=Task.Status.DONE)
+                ),
+            ),
+        )
+
+        serializer = self.get_serializer(summary)
+
+        return Response(serializer.data)
 class ProjectTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TaskSerializer
     permission_classes = (permissions.IsAuthenticated,)
@@ -518,3 +620,4 @@ class WorkspaceOverviewView(generics.GenericAPIView):
         })
 
         return Response(serializer.data)
+    

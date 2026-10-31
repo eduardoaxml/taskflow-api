@@ -127,3 +127,22 @@ export function deleteTask(
     { method: "DELETE" },
   );
 }
+
+export interface ProjectTaskSummary {
+  total: number;
+  todo: number;
+  in_progress: number;
+  blocked: number;
+  completed: number;
+  overdue: number;
+}
+
+export const getProjectTaskSummary = (
+  organizationId: string,
+  projectId: string,
+  request: AuthenticatedRequest,
+): Promise<ProjectTaskSummary> => {
+  return request<ProjectTaskSummary>(
+    `organizations/${organizationId}/projects/${projectId}/tasks/summary/`,
+  );
+};

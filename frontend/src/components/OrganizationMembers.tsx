@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { OrganizationMember } from "../types/api";
-import { getOrganizationMembers } from "../services/memberService";
+import { getAllOrganizationMembers } from "../services/memberService";
 
 type Props = {
   organizationId: string;
@@ -20,9 +20,15 @@ export default function OrganizationMembers({
 
     async function loadMembers() {
       try {
-        const response = await getOrganizationMembers(organizationId, request);
+        const response = await getAllOrganizationMembers(
+          organizationId,
+          request,
+        );
+
         if (active) {
-          setMembers(response.results.filter((member) => member.is_active));
+          setMembers(
+            response.filter((member: OrganizationMember) => member.is_active),
+          );
           setError("");
         }
       } catch {
@@ -41,23 +47,74 @@ export default function OrganizationMembers({
 
   return (
     <section className="organization-members">
-      <h3>Organization members</h3>
+      <div className="organization-members__header">
+        <div>
+          <p className="eyebrow">YOUR TEAM</p>
+          <h2>Organization members</h2>
+          <p className="organization-members__description">
+            People who have access to this organization.
+          </p>
+        </div>
 
-      {loading && <p>Loading members...</p>}
-      {error && <p role="alert">{error}</p>}
+        {!loading && !error && (
+          <span className="organization-members__count">
+            {members.length} {members.length === 1 ? "member" : "members"}
+          </span>
+        )}
+      </div>
+
+      {loading && (
+        <div className="organization-members__state">
+          <span className="organization-members__spinner" />
+          <p>Loading members...</p>
+        </div>
+      )}
+
+      {error && (
+        <p className="organization-members__error" role="alert">
+          {error}
+        </p>
+      )}
 
       {!loading && !error && members.length === 0 && (
-        <p>No active members found.</p>
+        <div className="organization-members__empty">
+          <span aria-hidden="true">👥</span>
+          <p>No active members found.</p>
+        </div>
       )}
 
       {!loading && !error && members.length > 0 && (
-        <ul>
-          {members.map((member) => (
-            <li key={member.id}>
-              <strong>{member.user_email}</strong>
-              <span>{member.role}</span>
-            </li>
-          ))}
+        <ul className="organization-members__list">
+          {members.map((member) => {
+            const initials = member.user_email
+              .split("@")[0]
+              .slice(0, 2)
+              .toUpperCase();
+
+            return (
+              <li key={member.id} className="organization-members__item">
+                <div className="organization-members__identity">
+                  <span
+                    className="organization-members__avatar"
+                    aria-hidden="true"
+                  >
+                    {initials}
+                  </span>
+
+                  <div className="organization-members__details">
+                    <strong>{member.user_email}</strong>
+                    <span>Organization member</span>
+                  </div>
+                </div>
+
+                <span
+                  className={`organization-members__role organization-members__role--${member.role.toLowerCase()}`}
+                >
+                  {member.role}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

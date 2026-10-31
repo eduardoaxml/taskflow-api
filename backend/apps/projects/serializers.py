@@ -98,13 +98,13 @@ class TaskSerializer(serializers.ModelSerializer):
 
         return assignee
     
-    def get_is_overdue(self, obj):
+    def get_is_overdue(self, obj) -> bool:
         if obj.due_date is None:
             return False
 
         return (
             obj.due_date < timezone.localdate()
-            and obj.status != "DONE"
+            and obj.status != Task.Status.DONE
         )
 
     def create(self, validated_data):
@@ -114,7 +114,13 @@ class TaskSerializer(serializers.ModelSerializer):
             **validated_data,
         )
 
-
+class ProjectTaskSummarySerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    todo = serializers.IntegerField()
+    in_progress = serializers.IntegerField()
+    blocked = serializers.IntegerField()
+    completed = serializers.IntegerField()
+    overdue = serializers.IntegerField()
 class TaskCommentSerializer(serializers.ModelSerializer):
     author_email = serializers.EmailField(
         source="author.email",

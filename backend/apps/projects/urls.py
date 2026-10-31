@@ -1,4 +1,3 @@
-
 from django.urls import path
 
 from apps.projects.views import (
@@ -7,6 +6,7 @@ from apps.projects.views import (
     OrganizationTaskActivityListView,
     ProjectTaskDetailView,
     ProjectTaskListCreateView,
+    ProjectTaskSummaryView,
     TaskActivityListView,
     TaskCommentListCreateView,
     WorkspaceOverviewView,
@@ -34,6 +34,12 @@ urlpatterns = [
         "organizations/<uuid:organization_id>/projects/<uuid:project_id>/tasks/",
         ProjectTaskListCreateView.as_view(),
         name="task-list",
+    ),
+    path(
+        "organizations/<uuid:organization_id>/projects/"
+        "<uuid:project_id>/tasks/summary/",
+        ProjectTaskSummaryView.as_view(),
+        name="task-summary",
     ),
     path(
         "organizations/<uuid:organization_id>/projects/<uuid:project_id>/tasks/<uuid:task_id>/",

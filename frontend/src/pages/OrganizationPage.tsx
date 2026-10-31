@@ -5,9 +5,11 @@ import { ApiError } from "../services/apiClient";
 import { getProjects, type ProjectOrdering } from "../services/projectService";
 import CreateProjectForm from "../components/CreateProjectForm";
 import type { Project, ProjectStatus } from "../types/api";
+import ProjectCard from "../components/ProjectCard";
 import OrganizationMembers from "../components/OrganizationMembers";
 import ProjectCardSkeleton from "../components/ProjectCardSkeleton";
-import ProjectStatusBadge from "../components/ProjectStatusBadge";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import "./OrganizationPage.css";
 
 export default function OrganizationPage() {
   const { organizationId } = useParams();
@@ -72,26 +74,19 @@ export default function OrganizationPage() {
         }
       }
     },
-    [organizationId, request],
+    [organizationId, request, debouncedSearch, statusFilter, sortBy],
   );
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setCurrentPage(1);
-      void loadProjects(1);
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      requestIdRef.current += 1;
-    };
-  }, [loadProjects]);
-
-  useEffect(() => {
     if (!organizationId) return;
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadProjects(1);
-  }, [organizationId, debouncedSearch, statusFilter, sortBy, loadProjects]);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [organizationId, loadProjects]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -115,6 +110,7 @@ export default function OrganizationPage() {
 
     return matchesStatus && matchesSearch;
   });
+
   const sortedProjects = [...filteredProjects].sort((a, b) => {
     switch (sortBy) {
       case "name":
@@ -138,137 +134,125 @@ export default function OrganizationPage() {
         );
     }
   });
-
   return (
-    <main>
-      <header>
-        <Link to="/dashboard">← Dashboard</Link>
-        <h1>Organization Projects</h1>
-      </header>
+    <DashboardLayout
+      activeSection="organizations"
+      organizationsTo={`/organizations/${organizationId}`}
+      searchValue={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder="Search projects by name or slug..."
+    >
+      <div className="organization-page">
+        <section className="organization-page__header">
+          <div>
+            <p className="eyebrow">ORGANIZATION WORKSPACE</p>
+            <h1>Organization Projects</h1>
+            <p className="organization-page__description">
+              Manage your projects, team members, and organization workspace.
+            </p>
+          </div>
 
-      {isLoading && (
-        <section
-          className="project-list project-list--loading"
-          aria-label="Loading projects"
-          aria-busy="true"
-        >
-          {Array.from({ length: 3 }, (_, index) => (
-            <ProjectCardSkeleton key={index} />
-          ))}
+          <Link className="secondary-button" to="/dashboard">
+            ← Back to dashboard
+          </Link>
         </section>
-      )}
 
-      {error && (
-        <div role="alert">
-          <p>{error}</p>
-          <button onClick={() => void loadProjects()}>Retry</button>
-        </div>
-      )}
-
-      {!isLoading && !error && projects.length === 0 && (
-        <section>
-          <h2>No projects yet</h2>
-          <p>
-            This organization doesn't have any projects yet. We'll add project
-            creation next.
-          </p>
-        </section>
-      )}
-
-      <section>
-        {organizationId && (
-          <CreateProjectForm
-            organizationId={organizationId}
-            request={request}
-            onCreated={() => void loadProjects()}
-          />
+        {isLoading && (
+          <section
+            className="project-list project-list--loading"
+            aria-label="Loading projects"
+            aria-busy="true"
+          >
+            {Array.from({ length: 3 }, (_, index) => (
+              <ProjectCardSkeleton key={index} />
+            ))}
+          </section>
         )}
-      </section>
 
-      {organizationId && (
-        <OrganizationMembers
-          organizationId={organizationId}
-          request={request}
-        />
-      )}
-      <div className="project-search">
-        <label htmlFor="project-search">Search projects</label>
+        {error && (
+          <div role="alert">
+            <p>{error}</p>
+            <button onClick={() => void loadProjects()}>Retry</button>
+          </div>
+        )}
 
-        <div className="project-search__input">
-          <input
-            id="project-search"
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search by project name or slug..."
-          />
-
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm("")}
-              aria-label="Clear project search"
-            >
-              Clear
-            </button>
-          )}
+        {!isLoading && !error && projects.length === 0 && (
+          <section>
+            <h2>No projects yet</h2>
+            <p>
+              This organization doesn't have any projects yet. We'll add project
+              creation next.
+            </p>
+          </section>
+        )}
+        <div className="organization-page__overview">
+          <section className="organization-page__create">
+            {organizationId && (
+              <CreateProjectForm
+                organizationId={organizationId}
+                request={request}
+                onCreated={() => void loadProjects()}
+              />
+            )}
+          </section>
+          <section className="organization-page__team">
+            {organizationId && (
+              <OrganizationMembers
+                organizationId={organizationId}
+                request={request}
+              />
+            )}
+          </section>
         </div>
       </div>
-      <div className="project-filters">
-        <label htmlFor="project-status-filter">Filter by status</label>
+      <section className="organization-page__listing">
+        <div className="organization-page__toolbar">
+          <div className="organization-page__field">
+            <label htmlFor="project-status-filter">Filter by status</label>
 
-        <select
-          id="project-status-filter"
-          value={statusFilter}
-          onChange={(event) =>
-            setStatusFilter(event.target.value as ProjectStatus | "ALL")
-          }
-        >
-          <option value="ALL">All projects</option>
-          <option value="PLANNING">Planning</option>
-          <option value="ACTIVE">Active</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
-      </div>
-      <div className="project-sorting">
-        <label htmlFor="project-sort">Sort by</label>
+            <select
+              id="project-status-filter"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as ProjectStatus | "ALL")
+              }
+            >
+              <option value="ALL">All projects</option>
+              <option value="PLANNING">Planning</option>
+              <option value="ACTIVE">Active</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+          <div className="organization-page__field">
+            <label htmlFor="project-sort">Sort by</label>
 
-        <select
-          id="project-sort"
-          value={sortBy}
-          onChange={(event) =>
-            setSortBy(event.target.value as ProjectSortOption)
-          }
-        >
-          <option value="-created_at">Newest first</option>
-          <option value="created_at">Oldest first</option>
-          <option value="name">Name (A–Z)</option>
-          <option value="-name">Name (Z–A)</option>
-          <option value="status">Status</option>
-        </select>
-      </div>
+            <select
+              id="project-sort"
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value as ProjectSortOption)
+              }
+            >
+              <option value="-created_at">Newest first</option>
+              <option value="created_at">Oldest first</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="-name">Name (Z–A)</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+        </div>
+      </section>
       {!isLoading && !error && projects.length > 0 && (
         <section>
           <h2>Projects</h2>
-          <ul>
+          <ul className="organization-page__project-grid">
             {sortedProjects.map((project) => (
-              <li key={project.id}>
-                <h3>{project.name}</h3>
-
-                <p>{project.description || "No description provided."}</p>
-
-                <div>
-                  <span>Status: </span>
-                  <ProjectStatusBadge status={project.status} />
-                </div>
-
-                <Link
-                  to={`/organizations/${organizationId}/projects/${project.id}`}
-                >
-                  View project →
-                </Link>
-              </li>
+              <ProjectCard
+                key={project.id}
+                project={project}
+                organizationId={organizationId!}
+              />
             ))}
           </ul>
           {filteredProjects.length === 0 && (
@@ -303,6 +287,6 @@ export default function OrganizationPage() {
           </button>
         </nav>
       )}
-    </main>
+    </DashboardLayout>
   );
 }

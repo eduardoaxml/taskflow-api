@@ -26,12 +26,22 @@ interface ProjectTasksProps {
   organizationId: string;
   projectId: string;
   request: AuthenticatedRequest;
+  statusFilter: TaskStatus | "ALL";
+  onStatusFilterChange: (status: TaskStatus | "ALL") => void;
+  onTasksChanged: () => void | Promise<void>;
+  overdueFilter: boolean;
+  onOverdueFilterChange: (overdue: boolean) => void;
 }
 
 export default function ProjectTasks({
   organizationId,
   projectId,
   request,
+  statusFilter,
+  onStatusFilterChange,
+  onTasksChanged,
+  overdueFilter,
+  onOverdueFilterChange,
 }: ProjectTasksProps) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -43,7 +53,6 @@ export default function ProjectTasks({
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | "ALL">("ALL");
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "ALL">(
     "ALL",
   );
@@ -67,7 +76,6 @@ export default function ProjectTasks({
       member.is_active &&
       ["OWNER", "ADMIN"].includes(member.role),
   );
-  const [overdueFilter, setOverdueFilter] = useState(false);
 
   const fetchTasks = useCallback(
     () =>
@@ -103,13 +111,12 @@ export default function ProjectTasks({
   const handleClearFilters = () => {
     setSearchTerm("");
     setDebouncedSearch("");
-    setStatusFilter("ALL");
+    onStatusFilterChange("ALL");
     setPriorityFilter("ALL");
     setAssigneeFilter("ALL");
-    setSortBy("-created_at");
-    setAssigneeFilter("ALL");
     setUnassignedFilter(false);
-    setOverdueFilter(false);
+    onOverdueFilterChange(false);
+    setSortBy("-created_at");
     setCurrentPage(1);
   };
 
@@ -118,10 +125,9 @@ export default function ProjectTasks({
     statusFilter !== "ALL" ||
     priorityFilter !== "ALL" ||
     assigneeFilter !== "ALL" ||
-    sortBy !== "-created_at" ||
     unassignedFilter ||
-    assigneeFilter !== "ALL" ||
-    overdueFilter;
+    overdueFilter ||
+    sortBy !== "-created_at";
 
   async function handleDeleteTask(taskId: string, taskTitle: string) {
     const confirmed = window.confirm(
@@ -144,6 +150,7 @@ export default function ProjectTasks({
         ...current,
         count: Math.max(0, current.count - 1),
       }));
+      void onTasksChanged();
     } catch (err) {
       setDeleteError(
         err instanceof ApiError
@@ -264,10 +271,9 @@ export default function ProjectTasks({
           className="task-filters__select"
           aria-label="Filter tasks by status"
           value={statusFilter}
-          onChange={(event) => {
-            setStatusFilter(event.target.value as TaskStatus | "ALL");
-            setCurrentPage(1);
-          }}
+          onChange={(event) =>
+            onStatusFilterChange(event.target.value as TaskStatus | "ALL")
+          }
         >
           <option value="ALL">All statuses</option>
           <option value="TODO">To do</option>
@@ -313,7 +319,7 @@ export default function ProjectTasks({
             <button
               type="button"
               onClick={() => {
-                setStatusFilter("ALL");
+                onStatusFilterChange("ALL");
                 setCurrentPage(1);
               }}
             >
@@ -364,7 +370,7 @@ export default function ProjectTasks({
             <button
               type="button"
               onClick={() => {
-                setOverdueFilter(false);
+                onOverdueFilterChange(false);
                 setCurrentPage(1);
               }}
             >
@@ -441,7 +447,7 @@ export default function ProjectTasks({
           type="checkbox"
           checked={overdueFilter}
           onChange={(event) => {
-            setOverdueFilter(event.target.checked);
+            onOverdueFilterChange(event.target.checked);
             setCurrentPage(1);
           }}
         />
@@ -473,54 +479,55 @@ export default function ProjectTasks({
         </p>
       )}
 
-      {!isLoading && !error && tasks.length === 0 && (
-        <p>No tasks yet. Create the first task for this project.</p>
-      )}
-
       <section>
         <h5>Tasks</h5>
 
-        {tasks.length > 0 ? (
-          <ul>
-            {tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                organizationId={organizationId}
-                projectId={projectId}
-                request={request}
-                isEditing={editingTaskId === task.id}
-                deletingTaskId={deletingTaskId}
-                onEdit={() => setEditingTaskId(task.id)}
-                onDelete={() => void handleDeleteTask(task.id, task.title)}
-                onSaved={() => {
-                  setEditingTaskId(null);
-                  void loadTasks();
-                }}
-                onCancel={() => setEditingTaskId(null)}
-                canManage={canManageTasks}
-              />
-            ))}
-          </ul>
-        ) : (
-          <div className="task-empty-state">
-            {hasActiveFilters ? (
-              <>
-                <h3>No matching tasks</h3>
-                <p>No tasks match your current search or filters.</p>
-
-                <button type="button" onClick={handleClearFilters}>
-                  Clear filters
-                </button>
-              </>
-            ) : (
-              <>
-                <h3>No tasks yet</h3>
-                <p>Create your first task to start organizing this project.</p>
-              </>
-            )}
-          </div>
-        )}
+        {!isLoading &&
+          !isRefreshing &&
+          !error &&
+          (tasks.length > 0 ? (
+            <ul>
+              {tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  organizationId={organizationId}
+                  projectId={projectId}
+                  request={request}
+                  isEditing={editingTaskId === task.id}
+                  deletingTaskId={deletingTaskId}
+                  onEdit={() => setEditingTaskId(task.id)}
+                  onDelete={() => void handleDeleteTask(task.id, task.title)}
+                  onSaved={() => {
+                    setEditingTaskId(null);
+                    void loadTasks();
+                    void onTasksChanged();
+                  }}
+                  onCancel={() => setEditingTaskId(null)}
+                  canManage={canManageTasks}
+                />
+              ))}
+            </ul>
+          ) : (
+            <div className="task-empty-state">
+              {hasActiveFilters ? (
+                <>
+                  <h3>No matching tasks</h3>
+                  <p>No tasks match your current search or filters.</p>
+                  <button type="button" onClick={handleClearFilters}>
+                    Clear filters
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3>No tasks yet</h3>
+                  <p>
+                    Create your first task to start organizing this project.
+                  </p>
+                </>
+              )}
+            </div>
+          ))}
         {pagination.count > 0 && (
           <div className="task-pagination">
             <p>
@@ -555,7 +562,10 @@ export default function ProjectTasks({
         organizationId={organizationId}
         projectId={projectId}
         request={request}
-        onCreated={() => void loadTasks()}
+        onCreated={() => {
+          void loadTasks();
+          void onTasksChanged();
+        }}
       />
     </section>
   );

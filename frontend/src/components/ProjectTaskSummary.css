@@ -1,0 +1,83 @@
+.project-task-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.project-task-summary__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e8ebf0;
+  border-radius: 12px;
+}
+
+.project-task-summary__label {
+  color: #687386;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.project-task-summary__value {
+  color: #252b38;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.project-task-summary__card--overdue .project-task-summary__value {
+  color: #dc4545;
+}
+
+.project-task-summary__card--completed .project-task-summary__value {
+  color: #16865b;
+}
+
+@media (max-width: 768px) {
+  .project-task-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .project-task-summary__card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .project-task-summary {
+    grid-template-columns: 1fr;
+  }
+}
+.project-task-summary__message {
+  margin: 16px 0;
+  color: #687386;
+  font-size: 14px;
+}
+
+.project-task-summary__message--error {
+  color: #dc4545;
+}
+.project-task-summary__card {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+button.project-task-summary__card:hover {
+  transform: translateY(-2px);
+}
+
+button.project-task-summary__card:focus-visible {
+  outline: 2px solid #3978e8;
+  outline-offset: 3px;
+}
