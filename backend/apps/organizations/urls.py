@@ -31,7 +31,7 @@ urlpatterns = [
         name="organization-detail",
     ),
     path(
-        "<uuid:organization_id>/members/",
+        "organizations/<uuid:organization_id>/members/",
         OrganizationMembershipListCreateView.as_view(),
         name="membership-list",
     ),

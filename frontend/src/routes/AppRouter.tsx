@@ -8,6 +8,8 @@ import DashboardPage from "../pages/DashboardPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import ProtectedRoute from "./ProtectedRoute";
 import OrganizationPage from "../pages/OrganizationPage";
+import ProjectOverviewPage from "../pages/ProjectOverviewPage";
+import TaskDetailPage from "../pages/TaskDetailPage";
 
 export default function AppRouter() {
   return (
@@ -22,6 +24,14 @@ export default function AppRouter() {
             <Route
               path="/organizations/:organizationId"
               element={<OrganizationPage />}
+            />
+            <Route
+              path="/organizations/:organizationId/projects/:projectId"
+              element={<ProjectOverviewPage />}
+            />
+            <Route
+              path="/organizations/:organizationId/projects/:projectId/tasks/:taskId"
+              element={<TaskDetailPage />}
             />
           </Route>
           <Route path="/404" element={<NotFoundPage />} />

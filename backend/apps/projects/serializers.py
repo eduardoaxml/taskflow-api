@@ -1,4 +1,4 @@
-
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.organizations.models import Membership
@@ -46,6 +46,7 @@ class TaskSerializer(serializers.ModelSerializer):
         read_only=True,
         allow_null=True,
     )
+    is_overdue = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -60,6 +61,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "assignee_email",
             "created_by",
             "due_date",
+            "is_overdue",
             "created_at",
             "updated_at",
         )
@@ -75,7 +77,12 @@ class TaskSerializer(serializers.ModelSerializer):
         if assignee is None:
             return assignee
 
-        organization = self.context["organization"]
+        organization = self.context.get("organization")
+        
+        if organization is None:
+            raise serializers.ValidationError(
+                "Organization context is required to validate the assignee."
+            )
 
         is_active_member = Membership.objects.filter(
             organization=organization,
@@ -90,6 +97,15 @@ class TaskSerializer(serializers.ModelSerializer):
             )
 
         return assignee
+    
+    def get_is_overdue(self, obj):
+        if obj.due_date is None:
+            return False
+
+        return (
+            obj.due_date < timezone.localdate()
+            and obj.status != "DONE"
+        )
 
     def create(self, validated_data):
         return Task.objects.create(

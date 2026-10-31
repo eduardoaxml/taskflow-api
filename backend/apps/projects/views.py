@@ -1,8 +1,9 @@
+from django.utils import timezone
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
-from rest_framework import generics, permissions
+from rest_framework import filters, generics, permissions
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -35,6 +36,16 @@ from apps.projects.serializers import (
 class OrganizationProjectListCreateView(generics.ListCreateAPIView):
     serializer_class = ProjectSerializer
     permission_classes = (permissions.IsAuthenticated,)
+    filter_backends = (
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    )
+
+    search_fields = ("name", "slug")
+
+    ordering_fields = ("name", "status", "created_at")
+
+    ordering = ("-created_at",)
 
     def get_permissions(self):
         classes = [permissions.IsAuthenticated]
@@ -51,11 +62,22 @@ class OrganizationProjectListCreateView(generics.ListCreateAPIView):
         )
 
     def get_queryset(self):
-        return Project.objects.filter(
-            organization_id=self.kwargs["organization_id"],
-            organization__memberships__user=self.request.user,
-            organization__memberships__is_active=True,
-        ).select_related("organization", "created_by").distinct()
+        queryset = (
+            Project.objects.filter(
+                organization_id=self.kwargs["organization_id"],
+                organization__memberships__user=self.request.user,
+                organization__memberships__is_active=True,
+            )
+            .select_related("organization", "created_by")
+            .distinct()
+        )
+
+        status = self.request.query_params.get("status")
+
+        if status:
+            queryset = queryset.filter(status=status)
+
+        return queryset
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -120,7 +142,8 @@ class ProjectTaskListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return self.queryset
-        return (
+
+        queryset = (
             Task.objects.filter(
                 project_id=self.kwargs["project_id"],
                 project__organization_id=self.kwargs["organization_id"],
@@ -134,6 +157,22 @@ class ProjectTaskListCreateView(generics.ListCreateAPIView):
             )
             .distinct()
         )
+
+        unassigned = self.request.query_params.get("unassigned")
+
+        if unassigned == "true":
+            queryset = queryset.filter(assignee__isnull=True)
+            
+        overdue = self.request.query_params.get("overdue")
+
+        if overdue == "true":
+            queryset = queryset.filter(
+                due_date__lt=timezone.localdate(),
+            ).exclude(
+                status=Task.Status.DONE,
+            )
+
+        return queryset
     
     def perform_create(self, serializer):
         task = serializer.save()
@@ -184,16 +223,23 @@ class ProjectTaskListCreateView(generics.ListCreateAPIView):
         "updated_at",
     )
 
-    ordering = ("-created_at")
+    ordering = ("-created_at",)
 
 class ProjectTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TaskSerializer
-    permission_classes = (
-        permissions.IsAuthenticated,
-        IsOrganizationMember,
-    )
+    permission_classes = (permissions.IsAuthenticated,)
     lookup_url_kwarg = "task_id"
+    
+    def get_permissions(self):
+        classes = [permissions.IsAuthenticated]
 
+        if self.request.method in ("PATCH", "PUT", "DELETE"):
+            classes.append(IsOrganizationManager)
+        else:
+            classes.append(IsOrganizationMember)
+
+        return [permission() for permission in classes]
+    
     def get_project(self):
         return get_object_or_404(
             Project.objects.filter(

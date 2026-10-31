@@ -47,6 +47,7 @@ export interface Task {
   assignee_email: string | null;
   created_by: number;
   due_date: string | null;
+  is_overdue: boolean;
   created_at: string;
   updated_at: string;
 }
